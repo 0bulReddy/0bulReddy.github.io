@@ -1,0 +1,234 @@
+{
+  "application_info": {
+    "app_name": "Civil Engineering Task Manager",
+    "version": "2.0.0",
+    "description": "Professional Project Management System for Civil Engineering Teams",
+    "company_name": "Civil Engineering Solutions",
+    "company_logo": "🏗️",
+    "contact_email": "admin@civileng.com"
+  },
+  "menu_configuration": {
+    "overview": {
+      "display_name": "Overview",
+      "icon": "fas fa-tachometer-alt",
+      "description": "Dashboard with task statistics and recent activity"
+    },
+    "my_tasks": {
+      "display_name": "My Tasks",
+      "icon": "fas fa-tasks",
+      "description": "Personal task management and assignment"
+    },
+    "schedule": {
+      "display_name": "Schedule",
+      "icon": "fas fa-calendar-alt",
+      "description": "Calendar view with project timeline"
+    },
+    "profile": {
+      "display_name": "Profile",
+      "icon": "fas fa-user",
+      "description": "User account settings and preferences"
+    },
+    "admin_panel": {
+      "display_name": "Admin Panel",
+      "icon": "fas fa-cogs",
+      "description": "Administrative functions and user management"
+    },
+    "team_progress": {
+      "display_name": "Team Progress",
+      "icon": "fas fa-chart-bar",
+      "description": "Team performance analytics and progress tracking"
+    },
+    "reports": {
+      "display_name": "Reports",
+      "icon": "fas fa-file-pdf",
+      "description": "Generate and download project reports"
+    }
+  },
+  "theme_configuration": {
+    "primary_color": "#2C3E50",
+    "secondary_color": "#E74C3C",
+    "accent_color": "#3498DB",
+    "success_color": "#27AE60",
+    "warning_color": "#F39C12",
+    "danger_color": "#E74C3C",
+    "info_color": "#3498DB",
+    "background_color": "#F8F9FA",
+    "text_color": "#2C3E50",
+    "sidebar_color": "#34495E"
+  },
+  "feature_toggles": {
+    "quick_actions": {
+      "enabled": true,
+      "description": "Enable quick action buttons for task status updates"
+    },
+    "pdf_reports": {
+      "enabled": true,
+      "description": "Enable PDF report generation functionality"
+    },
+    "team_dashboard": {
+      "enabled": true,
+      "description": "Enable team progress dashboard for administrators"
+    },
+    "calendar_view": {
+      "enabled": true,
+      "description": "Enable calendar/schedule view for tasks"
+    },
+    "deadline_alerts": {
+      "enabled": true,
+      "description": "Enable deadline warnings and overdue task alerts"
+    },
+    "email_notifications": {
+      "enabled": false,
+      "description": "Enable email notifications (requires server-side setup)"
+    },
+    "task_comments": {
+      "enabled": true,
+      "description": "Enable commenting system for tasks"
+    },
+    "file_attachments": {
+      "enabled": false,
+      "description": "Enable file attachment functionality (requires storage setup)"
+    }
+  },
+  "text_labels": {
+    "login_page": {
+      "title": "Welcome Back",
+      "subtitle": "Sign in to your account",
+      "username_label": "Username",
+      "password_label": "Password",
+      "login_button": "Sign In",
+      "register_link": "Create new account"
+    },
+    "dashboard": {
+      "welcome_message": "Welcome to your Dashboard",
+      "total_tasks": "Total Tasks",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "overdue": "Overdue"
+    },
+    "task_status": {
+      "not_started": "Not Started",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "on_hold": "On Hold",
+      "cancelled": "Cancelled"
+    },
+    "priority_levels": {
+      "high": "High Priority",
+      "medium": "Medium Priority",
+      "low": "Low Priority"
+    },
+    "buttons": {
+      "create_task": "Create New Task",
+      "edit_task": "Edit Task",
+      "delete_task": "Delete Task",
+      "save": "Save Changes",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "export_pdf": "Export to PDF"
+    }
+  },
+  "task_configuration": {
+    "default_priority": "medium",
+    "default_status": "not_started",
+    "status_options": [
+      {
+        "value": "not_started",
+        "label": "Not Started",
+        "color": "#6C757D"
+      },
+      {
+        "value": "in_progress",
+        "label": "In Progress",
+        "color": "#FFC107"
+      },
+      {
+        "value": "completed",
+        "label": "Completed",
+        "color": "#28A745"
+      },
+      {
+        "value": "on_hold",
+        "label": "On Hold",
+        "color": "#17A2B8"
+      },
+      {
+        "value": "cancelled",
+        "label": "Cancelled",
+        "color": "#DC3545"
+      }
+    ],
+    "priority_options": [
+      {
+        "value": "high",
+        "label": "High",
+        "color": "#DC3545"
+      },
+      {
+        "value": "medium",
+        "label": "Medium",
+        "color": "#FFC107"
+      },
+      {
+        "value": "low",
+        "label": "Low",
+        "color": "#28A745"
+      }
+    ]
+  },
+  "notification_settings": {
+    "deadline_warning_days": 3,
+    "overdue_alert_enabled": true,
+    "task_assignment_notification": true,
+    "task_completion_notification": true,
+    "progress_update_notification": true
+  },
+  "data_settings": {
+    "auto_save_interval": 30000,
+    "backup_frequency": "daily",
+    "data_retention_days": 365,
+    "export_formats": [
+      "pdf",
+      "csv",
+      "json"
+    ]
+  },
+  "permissions": {
+    "admin": {
+      "can_create_users": true,
+      "can_delete_users": true,
+      "can_view_all_tasks": true,
+      "can_generate_reports": true,
+      "can_modify_settings": true
+    },
+    "user": {
+      "can_create_tasks": true,
+      "can_edit_own_tasks": true,
+      "can_view_assigned_tasks": true,
+      "can_update_task_status": true,
+      "can_comment_on_tasks": true
+    }
+  },
+  "customization_instructions": {
+    "how_to_customize": [
+      "1. Open this config.json file in any text editor",
+      "2. Modify the values you want to change (keep the structure intact)",
+      "3. Save the file",
+      "4. Refresh your application to see changes",
+      "5. For GitHub Pages deployment, commit and push the changes"
+    ],
+    "examples": {
+      "change_app_name": "Modify 'application_info.app_name' to your desired name",
+      "change_menu_names": "Update 'menu_configuration' display_name values",
+      "change_colors": "Modify 'theme_configuration' color values (use hex codes)",
+      "toggle_features": "Set 'feature_toggles' enabled values to true/false",
+      "customize_labels": "Update 'text_labels' to match your language/preferences"
+    },
+    "warnings": [
+      "Do not change the structure/keys, only change the values",
+      "Use valid hex color codes (e.g., #FF0000 for red)",
+      "Boolean values should be true or false (lowercase)",
+      "Always backup your config before making changes"
+    ]
+  }
+}
