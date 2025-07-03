@@ -132,7 +132,13 @@
         <div class="main-content">
             <!-- Header -->
             <div class="dashboard-header">
-                <h1 id="sectionTitle">Dashboard Overview</h1>
+                <div class="header-left">
+                    <h1 id="sectionTitle">Dashboard Overview</h1>
+                    <div class="live-clock">
+                        <i class="fas fa-clock"></i>
+                        <span id="currentDateTime">Loading...</span>
+                    </div>
+                </div>
                 <div class="user-info">
                     <span id="userWelcome">Welcome, User!</span>
                     <span class="badge" id="userRole">User</span>
@@ -185,16 +191,34 @@
                         <div class="card stat-card">
                             <div class="card-body">
                                 <div class="stat-icon">
-                                    <i class="fas fa-check-circle"></i>
+                                    <i class="fas fa-exclamation-triangle"></i>
                                 </div>
                                 <div class="stat-content">
-                                    <h3 id="completedTasks">0</h3>
-                                    <p>Completed</p>
+                                    <h3 id="overdueTasks">0</h3>
+                                    <p>Overdue</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                
+                <!-- Deadline Alerts Section -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="card deadline-alerts-card">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-exclamation-triangle text-warning"></i>
+                                    Deadline Alerts
+                                </h5>
+                                <div id="deadlineAlerts">
+                                    <!-- Deadline alerts will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="row mt-4">
                     <div class="col-md-6">
                         <div class="card">
@@ -241,7 +265,7 @@
                 </div>
                 
                 <div class="row mb-3">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <select class="form-control" id="statusFilter">
                             <option value="">All Statuses</option>
                             <option value="Not Started">Not Started</option>
@@ -249,7 +273,7 @@
                             <option value="Completed">Completed</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <select class="form-control" id="priorityFilter">
                             <option value="">All Priorities</option>
                             <option value="High">High</option>
@@ -257,12 +281,21 @@
                             <option value="Low">Low</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <select class="form-control" id="assigneeFilter">
                             <option value="">All Assignees</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
+                        <select class="form-control" id="deadlineFilter">
+                            <option value="">All Deadlines</option>
+                            <option value="overdue">Overdue</option>
+                            <option value="today">Due Today</option>
+                            <option value="week">Due This Week</option>
+                            <option value="month">Due This Month</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
                         <input type="text" class="form-control" id="searchTasks" placeholder="Search tasks...">
                     </div>
                 </div>
@@ -625,7 +658,7 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="taskEndDate" class="form-label">End Date</label>
+                                    <label for="taskEndDate" class="form-label">End Date (Deadline)</label>
                                     <input type="date" class="form-control" id="taskEndDate" required>
                                 </div>
                             </div>

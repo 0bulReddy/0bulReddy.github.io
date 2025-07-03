@@ -1,4 +1,4 @@
-// Enhanced Civil Engineering Task Management Dashboard with Edit Request System
+// Enhanced Civil Engineering Task Management Dashboard with Real-World Timing and Deadline Management
 class TaskManager {
     constructor() {
         this.currentUser = null;
@@ -12,6 +12,9 @@ class TaskManager {
         this.charts = {};
         this.calendar = null;
         this.bcryptReady = false;
+        this.clockInterval = null;
+        this.deadlineInterval = null;
+        this.statsInterval = null;
         
         this.init();
     }
@@ -26,6 +29,7 @@ class TaskManager {
             this.createUserModal = new bootstrap.Modal(document.getElementById('createUserModal'));
             this.editRequestModal = new bootstrap.Modal(document.getElementById('editRequestModal'));
             this.checkAuthStatus();
+            this.startRealTimeUpdates();
         });
     }
 
@@ -58,6 +62,215 @@ class TaskManager {
             
             checkLibraries();
         });
+    }
+
+    // Real-Time Updates System
+    startRealTimeUpdates() {
+        // Start live clock (updates every second)
+        this.clockInterval = setInterval(() => {
+            this.updateLiveClock();
+        }, 1000);
+
+        // Start deadline calculations (updates every minute)
+        this.deadlineInterval = setInterval(() => {
+            this.updateDeadlineCalculations();
+        }, 60000);
+
+        // Start statistics updates (updates every 30 seconds)
+        this.statsInterval = setInterval(() => {
+            this.updateDashboardStats();
+        }, 30000);
+
+        // Initial updates
+        this.updateLiveClock();
+        this.updateDeadlineCalculations();
+    }
+
+    updateLiveClock() {
+        const now = new Date();
+        const options = {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            timeZone: 'Asia/Kolkata',
+            timeZoneName: 'short'
+        };
+        
+        const formattedDateTime = now.toLocaleDateString('en-US', options);
+        const clockElement = document.getElementById('currentDateTime');
+        if (clockElement) {
+            clockElement.textContent = formattedDateTime;
+        }
+    }
+
+    updateDeadlineCalculations() {
+        // Update all tasks with current deadline status
+        this.tasks.forEach(task => {
+            task.deadlineInfo = this.calculateDeadlineInfo(task.end_date, task.status);
+        });
+
+        // Update UI if dashboard is visible
+        if (document.getElementById('dashboard').style.display !== 'none') {
+            this.updateDeadlineAlerts();
+            this.updateTasksList();
+            this.updateOverviewStats();
+        }
+    }
+
+    updateDashboardStats() {
+        if (document.getElementById('overviewSection').style.display !== 'none') {
+            this.showOverview();
+        }
+    }
+
+    calculateDeadlineInfo(endDate, status) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const deadline = new Date(endDate);
+        deadline.setHours(0, 0, 0, 0);
+        
+        const timeDiff = deadline.getTime() - today.getTime();
+        const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+        
+        let urgencyLevel = 'safe';
+        let displayText = '';
+        let colorClass = 'deadline-safe';
+        
+        if (status === 'Completed') {
+            urgencyLevel = 'completed';
+            displayText = 'Completed';
+            colorClass = 'deadline-safe';
+        } else if (daysDiff < 0) {
+            urgencyLevel = 'overdue';
+            displayText = `${Math.abs(daysDiff)} days overdue`;
+            colorClass = 'deadline-overdue';
+        } else if (daysDiff === 0) {
+            urgencyLevel = 'today';
+            displayText = 'Due today';
+            colorClass = 'deadline-urgent';
+        } else if (daysDiff === 1) {
+            urgencyLevel = 'urgent';
+            displayText = 'Due tomorrow';
+            colorClass = 'deadline-urgent';
+        } else if (daysDiff <= 2) {
+            urgencyLevel = 'urgent';
+            displayText = `${daysDiff} days remaining`;
+            colorClass = 'deadline-urgent';
+        } else if (daysDiff <= 7) {
+            urgencyLevel = 'warning';
+            displayText = `${daysDiff} days remaining`;
+            colorClass = 'deadline-warning';
+        } else {
+            urgencyLevel = 'safe';
+            displayText = `${daysDiff} days remaining`;
+            colorClass = 'deadline-safe';
+        }
+        
+        return {
+            urgencyLevel,
+            displayText,
+            colorClass,
+            daysRemaining: daysDiff,
+            isOverdue: daysDiff < 0 && status !== 'Completed'
+        };
+    }
+
+    updateDeadlineAlerts() {
+        const alertsContainer = document.getElementById('deadlineAlerts');
+        if (!alertsContainer) return;
+
+        const userTasks = this.currentUser.role === 'admin' ? 
+            this.tasks : 
+            this.tasks.filter(task => task.user_id === this.currentUser.id || task.assigned_to === this.currentUser.id);
+
+        // Get urgent tasks (overdue, due today, or due within 3 days)
+        const urgentTasks = userTasks.filter(task => {
+            if (!task.deadlineInfo) {
+                task.deadlineInfo = this.calculateDeadlineInfo(task.end_date, task.status);
+            }
+            return task.deadlineInfo.urgencyLevel === 'overdue' || 
+                   task.deadlineInfo.urgencyLevel === 'today' || 
+                   task.deadlineInfo.urgencyLevel === 'urgent';
+        }).sort((a, b) => a.deadlineInfo.daysRemaining - b.deadlineInfo.daysRemaining);
+
+        if (urgentTasks.length === 0) {
+            alertsContainer.innerHTML = `
+                <div class="deadline-alert-item safe">
+                    <div class="deadline-alert-title">
+                        <i class="fas fa-check-circle text-success"></i>
+                        No urgent deadlines
+                    </div>
+                    <div class="deadline-alert-info">
+                        <span>All tasks are on track</span>
+                        <span class="deadline-badge deadline-safe">Good</span>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        alertsContainer.innerHTML = urgentTasks.map(task => {
+            const assignee = this.users.find(u => u.id === task.assigned_to);
+            const creator = this.users.find(u => u.id === task.user_id);
+            
+            return `
+                <div class="deadline-alert-item ${task.deadlineInfo.urgencyLevel}" data-task-id="${task.id}">
+                    <div class="deadline-alert-title">
+                        <i class="fas fa-${task.deadlineInfo.urgencyLevel === 'overdue' ? 'exclamation-triangle' : 'clock'}"></i>
+                        ${task.title}
+                    </div>
+                    <div class="deadline-alert-info">
+                        <span>
+                            ${assignee ? `Assigned to: ${assignee.username}` : `Created by: ${creator ? creator.username : 'Unknown'}`}
+                            | Priority: ${task.priority}
+                        </span>
+                        <span class="deadline-badge ${task.deadlineInfo.colorClass}">
+                            ${task.deadlineInfo.displayText}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Add click handlers to alert items
+        alertsContainer.querySelectorAll('.deadline-alert-item').forEach(item => {
+            item.style.cursor = 'pointer';
+            item.addEventListener('click', () => {
+                const taskId = parseInt(item.dataset.taskId);
+                this.editTask(taskId);
+            });
+        });
+    }
+
+    updateTasksList() {
+        if (document.getElementById('tasksSection').style.display !== 'none') {
+            this.renderTasks();
+        }
+    }
+
+    updateOverviewStats() {
+        const userTasks = this.currentUser.role === 'admin' ? 
+            this.tasks : 
+            this.tasks.filter(task => task.user_id === this.currentUser.id || task.assigned_to === this.currentUser.id);
+
+        // Calculate overdue tasks
+        const overdueTasks = userTasks.filter(task => {
+            if (!task.deadlineInfo) {
+                task.deadlineInfo = this.calculateDeadlineInfo(task.end_date, task.status);
+            }
+            return task.deadlineInfo.isOverdue;
+        });
+
+        // Update overdue counter
+        const overdueElement = document.getElementById('overdueTasks');
+        if (overdueElement) {
+            overdueElement.textContent = overdueTasks.length;
+        }
     }
 
     hashPassword(password) {
@@ -101,7 +314,16 @@ class TaskManager {
                     pdf_reports: true,
                     team_dashboard: true,
                     calendar_view: true,
-                    deadline_alerts: true
+                    deadline_alerts: true,
+                    real_time_updates: true
+                },
+                timing: {
+                    timezone: "IST",
+                    update_intervals: {
+                        clock: 1000,
+                        deadlines: 60000,
+                        stats: 30000
+                    }
                 }
             };
             this.saveAppConfig();
@@ -125,7 +347,7 @@ class TaskManager {
         }
     }
 
-    // Load sample data if none exists
+    // Load sample data with enhanced deadline examples
     loadSampleData() {
         const existingUsers = localStorage.getItem('ce_users');
         const existingTasks = localStorage.getItem('ce_tasks');
@@ -165,54 +387,93 @@ class TaskManager {
         }
 
         if (!existingTasks) {
+            const today = new Date();
+            const formatDate = (days) => {
+                const date = new Date(today);
+                date.setDate(date.getDate() + days);
+                return date.toISOString().split('T')[0];
+            };
+
             const sampleTasks = [
                 {
                     id: 1,
                     user_id: 1,
                     assigned_to: 2,
-                    title: 'Site Survey and Analysis',
-                    description: 'Complete topographical survey of construction site for foundation planning',
-                    start_date: '2025-07-01',
-                    end_date: '2025-07-10',
+                    title: 'Foundation Excavation - Phase 1',
+                    description: 'Complete excavation for Building A foundation with proper soil analysis and safety measures',
+                    start_date: formatDate(-5),
+                    end_date: formatDate(-1), // Overdue
                     priority: 'High',
-                    status: 'Completed',
-                    locked_for_editing: true,
-                    assignee_comments: 'Survey completed with high accuracy measurements',
-                    progress_notes: ['Initial site inspection completed', 'Survey equipment calibrated', 'Data collection finished'],
-                    created_date: '2025-07-01',
-                    updated_date: '2025-07-03'
+                    status: 'In Progress',
+                    locked_for_editing: false,
+                    assignee_comments: 'Excavation 80% complete, facing some rocky soil conditions',
+                    progress_notes: ['Site preparation completed', 'Excavation equipment deployed', 'Soil samples taken'],
+                    created_date: formatDate(-5),
+                    updated_date: formatDate(-1)
                 },
                 {
                     id: 2,
                     user_id: 1,
                     assigned_to: 3,
-                    title: 'Foundation Design Review',
-                    description: 'Review and approve foundation design plans according to safety standards',
-                    start_date: '2025-07-05',
-                    end_date: '2025-07-15',
-                    priority: 'Medium',
-                    status: 'In Progress',
-                    locked_for_editing: false,
-                    assignee_comments: 'Currently reviewing structural calculations',
-                    progress_notes: ['Design drawings received', 'Initial review started'],
-                    created_date: '2025-07-05',
-                    updated_date: '2025-07-05'
-                },
-                {
-                    id: 3,
-                    user_id: 2,
-                    assigned_to: 1,
-                    title: 'Safety Inspection Protocol',
-                    description: 'Establish comprehensive safety inspection protocols for the construction site',
-                    start_date: '2025-07-02',
-                    end_date: '2025-07-08',
+                    title: 'Concrete Pouring Schedule',
+                    description: 'Plan and execute concrete pouring for foundation with quality control measures',
+                    start_date: formatDate(0),
+                    end_date: formatDate(0), // Due today
                     priority: 'High',
                     status: 'Not Started',
                     locked_for_editing: false,
                     assignee_comments: '',
                     progress_notes: [],
-                    created_date: '2025-07-02',
-                    updated_date: '2025-07-02'
+                    created_date: formatDate(-3),
+                    updated_date: formatDate(-3)
+                },
+                {
+                    id: 3,
+                    user_id: 2,
+                    assigned_to: 1,
+                    title: 'Steel Reinforcement Installation',
+                    description: 'Install steel rebar according to structural drawings and specifications',
+                    start_date: formatDate(-2),
+                    end_date: formatDate(2), // Due in 2 days
+                    priority: 'Medium',
+                    status: 'In Progress',
+                    locked_for_editing: false,
+                    assignee_comments: 'Rebar placement in progress, 60% complete',
+                    progress_notes: ['Material delivery completed', 'Rebar cutting started'],
+                    created_date: formatDate(-2),
+                    updated_date: formatDate(0)
+                },
+                {
+                    id: 4,
+                    user_id: 1,
+                    assigned_to: 2,
+                    title: 'Site Safety Inspection',
+                    description: 'Comprehensive safety audit of construction site including equipment and procedures',
+                    start_date: formatDate(-7),
+                    end_date: formatDate(-3), // Completed (was due 3 days ago)
+                    priority: 'High',
+                    status: 'Completed',
+                    locked_for_editing: true,
+                    assignee_comments: 'Safety inspection completed successfully, all protocols followed',
+                    progress_notes: ['Safety checklist prepared', 'Equipment inspection done', 'Report submitted'],
+                    created_date: formatDate(-7),
+                    updated_date: formatDate(-3)
+                },
+                {
+                    id: 5,
+                    user_id: 3,
+                    assigned_to: 1,
+                    title: 'Structural Design Review',
+                    description: 'Review and approve structural calculations and design drawings',
+                    start_date: formatDate(1),
+                    end_date: formatDate(10), // Due in 10 days
+                    priority: 'Medium',
+                    status: 'Not Started',
+                    locked_for_editing: false,
+                    assignee_comments: '',
+                    progress_notes: [],
+                    created_date: formatDate(0),
+                    updated_date: formatDate(0)
                 }
             ];
             localStorage.setItem('ce_tasks', JSON.stringify(sampleTasks));
@@ -222,10 +483,10 @@ class TaskManager {
             const sampleEditRequests = [
                 {
                     id: 1,
-                    task_id: 1,
+                    task_id: 4,
                     requested_by: 2,
                     assigned_by: 1,
-                    reason: 'Need to update survey measurements after discovering additional geological features',
+                    reason: 'Need to update safety inspection report with additional equipment checks discovered after completion',
                     status: 'pending',
                     request_date: '2025-07-03',
                     response_date: null,
@@ -242,6 +503,11 @@ class TaskManager {
         this.users = JSON.parse(localStorage.getItem('ce_users')) || [];
         this.tasks = JSON.parse(localStorage.getItem('ce_tasks')) || [];
         this.editRequests = JSON.parse(localStorage.getItem('ce_edit_requests')) || [];
+        
+        // Update deadline info for all tasks
+        this.tasks.forEach(task => {
+            task.deadlineInfo = this.calculateDeadlineInfo(task.end_date, task.status);
+        });
     }
 
     saveData() {
@@ -294,9 +560,10 @@ class TaskManager {
             createUserForm.addEventListener('submit', (e) => e.preventDefault());
         }
 
-        // Filters
+        // Filters (enhanced with deadline filter)
         document.getElementById('statusFilter').addEventListener('change', () => this.filterTasks());
         document.getElementById('priorityFilter').addEventListener('change', () => this.filterTasks());
+        document.getElementById('deadlineFilter').addEventListener('change', () => this.filterTasks());
         
         const assigneeFilter = document.getElementById('assigneeFilter');
         if (assigneeFilter) {
@@ -395,6 +662,11 @@ class TaskManager {
     }
 
     handleLogout() {
+        // Clear intervals
+        if (this.clockInterval) clearInterval(this.clockInterval);
+        if (this.deadlineInterval) clearInterval(this.deadlineInterval);
+        if (this.statsInterval) clearInterval(this.statsInterval);
+        
         this.currentUser = null;
         localStorage.removeItem('ce_current_user');
         this.showLoginPage();
@@ -418,6 +690,11 @@ class TaskManager {
 
     // UI Navigation
     showLoginPage() {
+        // Clear intervals when showing login page
+        if (this.clockInterval) clearInterval(this.clockInterval);
+        if (this.deadlineInterval) clearInterval(this.deadlineInterval);
+        if (this.statsInterval) clearInterval(this.statsInterval);
+        
         document.getElementById('loginPage').style.display = 'flex';
         document.getElementById('registerPage').style.display = 'none';
         document.getElementById('dashboard').style.display = 'none';
@@ -566,7 +843,7 @@ class TaskManager {
         }
     }
 
-    // Overview Section
+    // Overview Section with Real-Time Updates
     showOverview() {
         const userTasks = this.currentUser.role === 'admin' ? 
             this.tasks : 
@@ -574,6 +851,7 @@ class TaskManager {
 
         const stats = this.calculateStats(userTasks);
         this.updateStatCards(stats);
+        this.updateDeadlineAlerts();
         
         setTimeout(() => {
             this.renderCharts(userTasks);
@@ -587,7 +865,8 @@ class TaskManager {
             total: tasks.length,
             pending: tasks.filter(t => t.status === 'Not Started').length,
             inProgress: tasks.filter(t => t.status === 'In Progress').length,
-            completed: tasks.filter(t => t.status === 'Completed').length
+            completed: tasks.filter(t => t.status === 'Completed').length,
+            overdue: tasks.filter(t => t.deadlineInfo && t.deadlineInfo.isOverdue).length
         };
     }
 
@@ -595,7 +874,7 @@ class TaskManager {
         document.getElementById('totalTasks').textContent = stats.total;
         document.getElementById('pendingTasks').textContent = stats.pending;
         document.getElementById('inProgressTasks').textContent = stats.inProgress;
-        document.getElementById('completedTasks').textContent = stats.completed;
+        document.getElementById('overdueTasks').textContent = stats.overdue;
     }
 
     renderCharts(tasks) {
@@ -707,21 +986,29 @@ class TaskManager {
             return;
         }
 
-        container.innerHTML = recentTasks.map(task => `
-            <div class="recent-task-item" data-task-id="${task.id}" style="cursor: pointer;">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-1">${task.title}</h6>
-                        <small class="text-muted">${task.description.substring(0, 100)}...</small>
-                    </div>
-                    <div class="text-end">
-                        <span class="status-badge status-${task.status.toLowerCase().replace(' ', '-')}">${task.status}</span>
-                        <br>
-                        <small class="text-muted">${task.end_date}</small>
+        container.innerHTML = recentTasks.map(task => {
+            if (!task.deadlineInfo) {
+                task.deadlineInfo = this.calculateDeadlineInfo(task.end_date, task.status);
+            }
+            
+            return `
+                <div class="recent-task-item" data-task-id="${task.id}" style="cursor: pointer;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${task.title}</h6>
+                            <small class="text-muted">${task.description.substring(0, 100)}...</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="status-badge status-${task.status.toLowerCase().replace(' ', '-')}">${task.status}</span>
+                            <br>
+                            <small class="deadline-countdown ${task.deadlineInfo.colorClass}">
+                                ${task.deadlineInfo.displayText}
+                            </small>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         container.querySelectorAll('.recent-task-item').forEach(item => {
             item.addEventListener('click', () => {
@@ -733,7 +1020,7 @@ class TaskManager {
         });
     }
 
-    // Tasks Section
+    // Enhanced Tasks Section with Deadline Information
     showTasks() {
         this.renderTasks();
         this.populateUserSelects();
@@ -772,13 +1059,23 @@ class TaskManager {
         const isCurrentUserTask = task.user_id === this.currentUser.id || task.assigned_to === this.currentUser.id;
         const canEdit = (isCurrentUserTask || this.currentUser.role === 'admin') && !task.locked_for_editing;
         const isAssignee = task.assigned_to === this.currentUser.id;
-        const isOverdue = new Date(task.end_date) < new Date() && task.status !== 'Completed';
         const isCompleted = task.status === 'Completed';
         const canRequestEdit = isCompleted && isAssignee && task.locked_for_editing;
+        
+        // Update deadline info
+        if (!task.deadlineInfo) {
+            task.deadlineInfo = this.calculateDeadlineInfo(task.end_date, task.status);
+        }
         
         let cardClass = 'task-card';
         if (task.locked_for_editing) {
             cardClass += ' locked-task';
+        } else if (task.deadlineInfo.isOverdue) {
+            cardClass += ' overdue-task';
+        } else if (task.deadlineInfo.urgencyLevel === 'today' || task.deadlineInfo.urgencyLevel === 'urgent') {
+            cardClass += ' deadline-urgent-task';
+        } else if (task.deadlineInfo.urgencyLevel === 'warning') {
+            cardClass += ' deadline-warning-task';
         }
         
         return `
@@ -786,12 +1083,12 @@ class TaskManager {
                 <div class="task-card-header">
                     <div>
                         <h5 class="task-title">${task.title}</h5>
-                        ${isOverdue ? '<span class="badge bg-danger">OVERDUE</span>' : ''}
-                        ${task.locked_for_editing ? '<span class="badge bg-warning">LOCKED</span>' : ''}
                     </div>
-                    <div class="d-flex gap-2">
+                    <div class="task-header-badges">
                         <span class="priority-badge priority-${task.priority.toLowerCase()}">${task.priority}</span>
                         <span class="status-badge status-${task.status.toLowerCase().replace(' ', '-')}">${task.status}</span>
+                        ${task.deadlineInfo.isOverdue ? '<span class="badge bg-danger">OVERDUE</span>' : ''}
+                        ${task.locked_for_editing ? '<span class="badge bg-warning">LOCKED</span>' : ''}
                     </div>
                 </div>
                 <div class="task-card-body">
@@ -806,6 +1103,14 @@ class TaskManager {
                         <div class="task-meta-item">
                             <i class="fas fa-calendar-alt"></i>
                             <span>${task.start_date} - ${task.end_date}</span>
+                        </div>
+                        <div class="task-meta-item task-deadline-info">
+                            <i class="fas fa-clock"></i>
+                            <span>Deadline: 
+                                <span class="deadline-countdown ${task.deadlineInfo.colorClass}">
+                                    ${task.deadlineInfo.displayText}
+                                </span>
+                            </span>
                         </div>
                         <div class="task-meta-item">
                             <i class="fas fa-user"></i>
@@ -850,6 +1155,7 @@ class TaskManager {
     filterTasks() {
         const statusFilter = document.getElementById('statusFilter').value;
         const priorityFilter = document.getElementById('priorityFilter').value;
+        const deadlineFilter = document.getElementById('deadlineFilter').value;
         const assigneeFilter = document.getElementById('assigneeFilter');
         const assigneeValue = assigneeFilter ? assigneeFilter.value : '';
         const searchQuery = document.getElementById('searchTasks').value.toLowerCase();
@@ -864,6 +1170,30 @@ class TaskManager {
 
         if (priorityFilter) {
             filteredTasks = filteredTasks.filter(task => task.priority === priorityFilter);
+        }
+
+        if (deadlineFilter) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            filteredTasks = filteredTasks.filter(task => {
+                if (!task.deadlineInfo) {
+                    task.deadlineInfo = this.calculateDeadlineInfo(task.end_date, task.status);
+                }
+                
+                switch (deadlineFilter) {
+                    case 'overdue':
+                        return task.deadlineInfo.isOverdue;
+                    case 'today':
+                        return task.deadlineInfo.urgencyLevel === 'today';
+                    case 'week':
+                        return task.deadlineInfo.daysRemaining >= 0 && task.deadlineInfo.daysRemaining <= 7 && task.status !== 'Completed';
+                    case 'month':
+                        return task.deadlineInfo.daysRemaining >= 0 && task.deadlineInfo.daysRemaining <= 30 && task.status !== 'Completed';
+                    default:
+                        return true;
+                }
+            });
         }
 
         if (assigneeValue) {
@@ -902,6 +1232,9 @@ class TaskManager {
             title.textContent = 'Add Task';
             form.reset();
             document.getElementById('taskId').value = '';
+            // Set default start date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('taskStartDate').value = today;
         }
         
         this.taskModal.show();
@@ -933,6 +1266,8 @@ class TaskManager {
                 }
                 
                 this.tasks[taskIndex] = { ...this.tasks[taskIndex], ...taskData };
+                // Update deadline info
+                this.tasks[taskIndex].deadlineInfo = this.calculateDeadlineInfo(taskData.end_date, taskData.status);
                 this.showAlert('Task updated successfully!', 'success');
             }
         } else {
@@ -945,6 +1280,8 @@ class TaskManager {
                 locked_for_editing: taskData.status === 'Completed',
                 ...taskData
             };
+            // Calculate deadline info for new task
+            newTask.deadlineInfo = this.calculateDeadlineInfo(newTask.end_date, newTask.status);
             this.tasks.push(newTask);
             this.showAlert('Task created successfully!', 'success');
         }
@@ -952,6 +1289,7 @@ class TaskManager {
         this.saveData();
         this.taskModal.hide();
         this.renderTasks();
+        this.updateDeadlineCalculations(); // Update real-time calculations
         
         if (this.calendar) {
             this.updateCalendarEvents();
@@ -974,6 +1312,7 @@ class TaskManager {
             this.tasks = this.tasks.filter(t => t.id !== taskId);
             this.saveData();
             this.renderTasks();
+            this.updateDeadlineCalculations(); // Update real-time calculations
             this.showAlert('Task deleted successfully!', 'success');
             
             if (this.calendar) {
@@ -1145,7 +1484,7 @@ class TaskManager {
         }).join('');
     }
 
-    // Schedule Section
+    // Schedule Section with Enhanced Calendar
     showSchedule() {
         if (typeof FullCalendar === 'undefined') {
             document.getElementById('calendar').innerHTML = '<p class="text-center">Calendar feature is not available.</p>';
@@ -1186,27 +1525,54 @@ class TaskManager {
     getCalendarEvents() {
         return this.tasks
             .filter(task => task.user_id === this.currentUser.id || task.assigned_to === this.currentUser.id || this.currentUser.role === 'admin')
-            .map(task => ({
-                id: task.id,
-                title: task.title,
-                start: task.start_date,
-                end: task.end_date,
-                backgroundColor: this.getTaskColor(task),
-                borderColor: this.getTaskColor(task),
-                extendedProps: {
-                    status: task.status,
-                    priority: task.priority
+            .map(task => {
+                if (!task.deadlineInfo) {
+                    task.deadlineInfo = this.calculateDeadlineInfo(task.end_date, task.status);
                 }
-            }));
+                
+                return {
+                    id: task.id,
+                    title: task.title,
+                    start: task.start_date,
+                    end: task.end_date,
+                    backgroundColor: this.getTaskColor(task),
+                    borderColor: this.getTaskColor(task),
+                    extendedProps: {
+                        status: task.status,
+                        priority: task.priority,
+                        urgencyLevel: task.deadlineInfo.urgencyLevel
+                    }
+                };
+            });
     }
 
     getTaskColor(task) {
-        const colors = {
-            'High': '#dc3545',
-            'Medium': '#fd7e14',
-            'Low': '#28a745'
-        };
-        return colors[task.priority] || '#6c757d';
+        // Color based on deadline urgency if not completed
+        if (task.status === 'Completed') {
+            return '#28a745'; // Green for completed
+        }
+        
+        if (!task.deadlineInfo) {
+            task.deadlineInfo = this.calculateDeadlineInfo(task.end_date, task.status);
+        }
+        
+        switch (task.deadlineInfo.urgencyLevel) {
+            case 'overdue':
+                return '#dc3545'; // Red
+            case 'today':
+            case 'urgent':
+                return '#fd7e14'; // Orange
+            case 'warning':
+                return '#ffc107'; // Yellow
+            default:
+                // Color by priority for safe deadlines
+                const priorityColors = {
+                    'High': '#dc3545',
+                    'Medium': '#fd7e14',
+                    'Low': '#28a745'
+                };
+                return priorityColors[task.priority] || '#6c757d';
+        }
     }
 
     updateCalendarEvents() {
@@ -1216,6 +1582,7 @@ class TaskManager {
         }
     }
 
+    // Continue with remaining methods...
     // User Management
     showCreateUserModal() {
         document.getElementById('createUserForm').reset();
@@ -1327,7 +1694,7 @@ class TaskManager {
         if (!tbody) return;
         
         tbody.innerHTML = this.users.map(user => {
-            const userTasks = this.tasks.filter(t => t.user_id === user.id);
+            const userTasks = this.tasks.filter(t => t.user_id === user.id || t.assigned_to === user.id);
             const isCurrentUser = user.id === this.currentUser.id;
             
             return `
@@ -1446,7 +1813,12 @@ class TaskManager {
         const totalUsers = this.users.length;
         const totalTasks = this.tasks.length;
         const completedTasks = this.tasks.filter(t => t.status === 'Completed').length;
-        const overdueTasks = this.tasks.filter(t => new Date(t.end_date) < new Date() && t.status !== 'Completed').length;
+        const overdueTasks = this.tasks.filter(t => {
+            if (!t.deadlineInfo) {
+                t.deadlineInfo = this.calculateDeadlineInfo(t.end_date, t.status);
+            }
+            return t.deadlineInfo.isOverdue;
+        }).length;
 
         container.innerHTML = `
             <div class="col-md-3">
@@ -1591,9 +1963,12 @@ class TaskManager {
             const allUserTasks = this.tasks.filter(t => t.user_id === user.id || t.assigned_to === user.id);
             const completedTasks = allUserTasks.filter(t => t.status === 'Completed');
             const inProgressTasks = allUserTasks.filter(t => t.status === 'In Progress');
-            const overdueTasks = allUserTasks.filter(t => 
-                new Date(t.end_date) < new Date() && t.status !== 'Completed'
-            );
+            const overdueTasks = allUserTasks.filter(t => {
+                if (!t.deadlineInfo) {
+                    t.deadlineInfo = this.calculateDeadlineInfo(t.end_date, t.status);
+                }
+                return t.deadlineInfo.isOverdue;
+            });
             const completionRate = allUserTasks.length > 0 ? 
                 Math.round((completedTasks.length / allUserTasks.length) * 100) : 0;
 
@@ -1708,12 +2083,21 @@ class TaskManager {
         doc.text('Team Summary', 20, yPosition);
         yPosition += 10;
         
+        const overdueTasks = this.tasks.filter(t => {
+            if (!t.deadlineInfo) {
+                t.deadlineInfo = this.calculateDeadlineInfo(t.end_date, t.status);
+            }
+            return t.deadlineInfo.isOverdue;
+        }).length;
+        
         doc.setFontSize(10);
         doc.text(`Total Users: ${this.users.length}`, 20, yPosition);
         yPosition += 5;
         doc.text(`Total Tasks: ${this.tasks.length}`, 20, yPosition);
         yPosition += 5;
         doc.text(`Completed Tasks: ${this.tasks.filter(t => t.status === 'Completed').length}`, 20, yPosition);
+        yPosition += 5;
+        doc.text(`Overdue Tasks: ${overdueTasks}`, 20, yPosition);
         yPosition += 5;
         doc.text(`Edit Requests: ${this.editRequests.length}`, 20, yPosition);
         yPosition += 5;
@@ -1752,9 +2136,15 @@ class TaskManager {
         this.users.forEach(user => {
             const userTasks = this.tasks.filter(t => t.user_id === user.id || t.assigned_to === user.id);
             const completed = userTasks.filter(t => t.status === 'Completed').length;
+            const overdue = userTasks.filter(t => {
+                if (!t.deadlineInfo) {
+                    t.deadlineInfo = this.calculateDeadlineInfo(t.end_date, t.status);
+                }
+                return t.deadlineInfo.isOverdue;
+            }).length;
             const completionRate = userTasks.length > 0 ? Math.round((completed / userTasks.length) * 100) : 0;
             
-            doc.text(`${user.username}: ${completed}/${userTasks.length} tasks (${completionRate}%)`, 20, yPosition);
+            doc.text(`${user.username}: ${completed}/${userTasks.length} tasks (${completionRate}%) - ${overdue} overdue`, 20, yPosition);
             yPosition += 5;
         });
         
@@ -1770,7 +2160,10 @@ class TaskManager {
         
         doc.setFontSize(10);
         sortedTasks.forEach(task => {
-            doc.text(`${task.title}: ${task.start_date} to ${task.end_date} (${task.status})`, 20, yPosition);
+            if (!task.deadlineInfo) {
+                task.deadlineInfo = this.calculateDeadlineInfo(task.end_date, task.status);
+            }
+            doc.text(`${task.title}: ${task.start_date} to ${task.end_date} (${task.status}) - ${task.deadlineInfo.displayText}`, 20, yPosition);
             yPosition += 5;
             if (yPosition > 280) {
                 doc.addPage();
@@ -1786,6 +2179,13 @@ class TaskManager {
         doc.text('Administrative Overview', 20, yPosition);
         yPosition += 15;
         
+        const overdueTasks = this.tasks.filter(t => {
+            if (!t.deadlineInfo) {
+                t.deadlineInfo = this.calculateDeadlineInfo(t.end_date, t.status);
+            }
+            return t.deadlineInfo.isOverdue;
+        }).length;
+        
         doc.setFontSize(10);
         doc.text('System Statistics:', 20, yPosition);
         yPosition += 5;
@@ -1794,6 +2194,8 @@ class TaskManager {
         doc.text(`• Active admin users: ${this.users.filter(u => u.role === 'admin').length}`, 25, yPosition);
         yPosition += 5;
         doc.text(`• Total tasks created: ${this.tasks.length}`, 25, yPosition);
+        yPosition += 5;
+        doc.text(`• Overdue tasks: ${overdueTasks}`, 25, yPosition);
         yPosition += 5;
         doc.text(`• Total edit requests: ${this.editRequests.length}`, 25, yPosition);
         yPosition += 5;
@@ -1870,7 +2272,16 @@ class TaskManager {
                     pdf_reports: true,
                     team_dashboard: true,
                     calendar_view: true,
-                    deadline_alerts: true
+                    deadline_alerts: true,
+                    real_time_updates: true
+                },
+                timing: {
+                    timezone: "IST",
+                    update_intervals: {
+                        clock: 1000,
+                        deadlines: 60000,
+                        stats: 30000
+                    }
                 }
             };
             
