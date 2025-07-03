@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Civil Engineering Task Management Dashboard</title>
+    <!-- Bootstrap & Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- FullCalendar -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container">
+        <div class="login-card">
+            <div class="text-center mb-4">
+                <i class="fas fa-hard-hat fa-3x text-primary mb-3"></i>
+                <h2>Civil Engineering Task Manager</h2>
+                <p class="text-muted">Professional Project Management System</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group mb-3">
+                    <label for="loginUsername" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="loginUsername" required>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="loginPassword" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="loginPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mb-3">Login</button>
+            </form>
+            <div class="text-center">
+                <span class="text-muted">Don't have an account? </span>
+                <a href="#" id="showRegister" class="text-primary">Register here</a>
+            </div>
+            <div class="demo-credentials mt-4">
+                <small class="text-muted">
+                    <strong>Demo Credentials:</strong><br>
+                    Admin: admin / admin123<br>
+                    User: john_engineer / password123
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Page -->
+    <div id="registerPage" class="login-container d-none">
+        <div class="login-card">
+            <div class="text-center mb-4">
+                <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
+                <h2>Create Account</h2>
+                <p class="text-muted">Join our engineering team</p>
+            </div>
+            <form id="registerForm">
+                <div class="form-group mb-3">
+                    <label for="registerUsername" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="registerUsername" required>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="registerEmail" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="registerEmail" required>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="registerPassword" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="registerPassword" required>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="confirmPassword" class="form-label">Confirm Password</label>
+                    <input type="password" class="form-control" id="confirmPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mb-3">Register</button>
+            </form>
+            <div class="text-center">
+                <span class="text-muted">Already have an account? </span>
+                <a href="#" id="showLogin" class="text-primary">Login here</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard" class="dashboard-container d-none">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-hard-hat"></i>
+                <span>CE Task Manager</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-section="overview"><i class="fas fa-tachometer-alt"></i><span>Overview</span></a>
+                <a href="#" class="nav-item" data-section="tasks"><i class="fas fa-tasks"></i><span>My Tasks</span></a>
+                <a href="#" class="nav-item" data-section="schedule"><i class="fas fa-calendar-alt"></i><span>Schedule</span></a>
+                <a href="#" class="nav-item" data-section="profile"><i class="fas fa-user"></i><span>Profile</span></a>
+                <a href="#" class="nav-item admin-only d-none" data-section="admin"><i class="fas fa-users-cog"></i><span>Admin Panel</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn btn-outline-light btn-sm" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </div>
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="dashboard-header">
+                <h1 id="sectionTitle">Dashboard Overview</h1>
+                <div class="user-info"><span id="userWelcome">Welcome, User!</span><span id="userRole" class="badge bg-primary">User</span></div>
+            </div>
+            <!-- Overview Section -->
+            <div id="overviewSection" class="content-section">
+                <div class="row">
+                    <div class="col-md-3"><div class="card stat-card"><div class="card-body"><div class="stat-icon"><i class="fas fa-tasks"></i></div><div class="stat-content"><h3 id="totalTasks">0</h3><p>Total Tasks</p></div></div></div></div>
+                    <div class="col-md-3"><div class="card stat-card"><div class="card-body"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-content"><h3 id="pendingTasks">0</h3><p>Pending</p></div></div></div></div>
+                    <div class="col-md-3"><div class="card stat-card"><div class="card-body"><div class="stat-icon"><i class="fas fa-spinner"></i></div><div class="stat-content"><h3 id="inProgressTasks">0</h3><p>In Progress</p></div></div></div></div>
+                    <div class="col-md-3"><div class="card stat-card"><div class="card-body"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-content"><h3 id="completedTasks">0</h3><p>Completed</p></div></div></div></div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-md-6"><div class="card"><div class="card-body"><h5 class="card-title">Task Status Distribution</h5><canvas id="taskStatusChart" height="200"></canvas></div></div></div>
+                    <div class="col-md-6"><div class="card"><div class="card-body"><h5 class="card-title">Task Priority Breakdown</h5><canvas id="taskPriorityChart" height="200"></canvas></div></div></div>
+                </div>
+            </div>
+            <!-- Tasks Section -->
+            <div id="tasksSection" class="content-section d-none">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>My Tasks</h2>
+                    <button class="btn btn-primary" id="addTaskBtn"><i class="fas fa-plus"></i> Add Task</button>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4"><select class="form-control" id="statusFilter"><option value="">All Statuses</option><option value="Not Started">Not Started</option><option value="In Progress">In Progress</option><option value="Completed">Completed</option></select></div>
+                    <div class="col-md-4"><select class="form-control" id="priorityFilter"><option value="">All Priorities</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option></select></div>
+                    <div class="col-md-4"><input type="text" class="form-control" id="searchTasks" placeholder="Search tasks..."></div>
+                </div>
+                <div id="tasksList"></div>
+            </div>
+            <!-- Schedule Section -->
+            <div id="scheduleSection" class="content-section d-none">
+                <h2 class="mb-4">Project Schedule</h2>
+                <div id="calendar" style="max-width:100%;margin:0 auto;"></div>
+            </div>
+            <!-- Profile Section -->
+            <div id="profileSection" class="content-section d-none">
+                <div class="row">
+                    <div class="col-md-6"><div class="card"><div class="card-body"><h5 class="card-title">Profile Information</h5><form id="profileForm"><div class="mb-3"><label class="form-label" for="profileUsername">Username</label><input class="form-control" id="profileUsername" readonly></div><div class="mb-3"><label class="form-label" for="profileEmail">Email</label><input type="email" class="form-control" id="profileEmail"></div><div class="mb-3"><label class="form-label" for="profileRole">Role</label><input class="form-control" id="profileRole" readonly></div><button class="btn btn-primary" type="submit">Update Profile</button></form></div></div></div>
+                    <div class="col-md-6"><div class="card"><div class="card-body"><h5 class="card-title">Change Password</h5><form id="changePasswordForm"><div class="mb-3"><label class="form-label" for="currentPassword">Current Password</label><input type="password" class="form-control" id="currentPassword" required></div><div class="mb-3"><label class="form-label" for="newPassword">New Password</label><input type="password" class="form-control" id="newPassword" required></div><div class="mb-3"><label class="form-label" for="confirmNewPassword">Confirm New Password</label><input type="password" class="form-control" id="confirmNewPassword" required></div><button class="btn btn-primary" type="submit">Change Password</button></form></div></div></div>
+                </div>
+            </div>
+            <!-- Admin Section -->
+            <div id="adminSection" class="content-section d-none">
+                <h2>Admin Panel</h2>
+                <!-- User Management Card -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0">User Management</h5>
+                            <button class="btn btn-primary btn-sm" id="createUserBtn"><i class="fas fa-user-plus"></i> Create User</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr><th>Username</th><th>Email</th><th>Role</th><th>Tasks</th><th>Last Login</th><th>Actions</th></tr>
+                                </thead>
+                                <tbody id="usersTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <!-- All Tasks -->
+                <div class="card mt-4"><div class="card-body"><h5 class="card-title">All Tasks Overview</h5><div id="allTasksList"></div></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div class="modal fade" id="taskModal" tabindex="-1">
+        <div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 id="taskModalTitle" class="modal-title">Add Task</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="taskForm"><input type="hidden" id="taskId"><div class="mb-3"><label class="form-label" for="taskTitle">Title</label><input id="taskTitle" class="form-control" required></div><div class="mb-3"><label class="form-label" for="taskDescription">Description</label><textarea id="taskDescription" class="form-control" rows="3" required></textarea></div><div class="row"><div class="col-md-6"><div class="mb-3"><label class="form-label" for="taskStartDate">Start Date</label><input type="date" id="taskStartDate" class="form-control" required></div></div><div class="col-md-6"><div class="mb-3"><label class="form-label" for="taskEndDate">End Date</label><input type="date" id="taskEndDate" class="form-control" required></div></div></div><div class="row"><div class="col-md-6"><div class="mb-3"><label class="form-label" for="taskPriority">Priority</label><select id="taskPriority" class="form-control"><option>Low</option><option>Medium</option><option>High</option></select></div></div><div class="col-md-6"><div class="mb-3"><label class="form-label" for="taskStatus">Status</label><select id="taskStatus" class="form-control"><option>Not Started</option><option>In Progress</option><option>Completed</option></select></div></div></div><div class="mb-3"><label class="form-label" for="taskAssignee">Assign To</label><select id="taskAssignee" class="form-control"></select></div></form></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="saveTaskBtn">Save Task</button></div></div></div>
+    </div>
+
+    <!-- Create User Modal -->
+    <div class="modal fade" id="createUserModal" tabindex="-1">
+        <div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Create New User</h5><button class="btn-close" data-bs-dismiss="modal" type="button"></button></div><div class="modal-body"><form id="createUserForm"><div class="mb-3"><label class="form-label" for="newUsername">Username</label><input class="form-control" id="newUsername" required></div><div class="mb-3"><label class="form-label" for="newEmail">Email</label><input type="email" class="form-control" id="newEmail" required></div><div class="mb-3"><label class="form-label" for="newPassword">Password</label><input type="password" class="form-control" id="newPassword" required></div><div class="mb-3"><label class="form-label" for="newRole">Role</label><select id="newRole" class="form-control"><option value="user">User</option><option value="admin">Admin</option></select></div></form></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="saveNewUserBtn">Create User</button></div></div></div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer" class="alert-container"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
