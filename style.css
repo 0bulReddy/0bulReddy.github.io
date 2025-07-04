@@ -1152,6 +1152,88 @@ a:hover { color: var(--color-primary-hover); }
   font-weight: 500;
 }
 
+/* Deadline Alerts Card */
+.deadline-alerts-card {
+  border-left: 4px solid var(--deadline-urgent);
+  background: linear-gradient(90deg, rgba(253, 126, 20, 0.05) 0%, var(--color-surface) 100%);
+}
+
+.deadline-alert-item {
+  background: var(--color-secondary);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  border-left: 3px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.deadline-alert-item:hover {
+  transform: translateX(2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.deadline-alert-item.overdue {
+  border-left-color: var(--deadline-overdue);
+  background: rgba(220, 53, 69, 0.08);
+}
+
+.deadline-alert-item.today {
+  border-left-color: var(--deadline-urgent);
+  background: rgba(253, 126, 20, 0.08);
+}
+
+.deadline-alert-item.urgent {
+  border-left-color: var(--deadline-warning);
+  background: rgba(255, 193, 7, 0.08);
+}
+
+.deadline-alert-item.safe {
+  border-left-color: var(--deadline-safe);
+  background: rgba(40, 167, 69, 0.08);
+}
+
+.deadline-alert-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.deadline-alert-info {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.deadline-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.deadline-badge.deadline-safe {
+  background: rgba(40, 167, 69, 0.15);
+  color: var(--deadline-safe);
+}
+
+.deadline-badge.deadline-warning {
+  background: rgba(255, 193, 7, 0.15);
+  color: var(--deadline-warning);
+}
+
+.deadline-badge.deadline-urgent {
+  background: rgba(253, 126, 20, 0.15);
+  color: var(--deadline-urgent);
+}
+
+.deadline-badge.deadline-overdue {
+  background: rgba(220, 53, 69, 0.15);
+  color: var(--deadline-overdue);
+}
+
 /* Task Management Enhancements */
 .nav-tabs .nav-link {
   border: none;
@@ -1672,88 +1754,6 @@ a:hover { color: var(--color-primary-hover); }
   color: var(--ce-primary);
 }
 
-/* Deadline Alerts Card */
-.deadline-alerts-card {
-  border-left: 4px solid var(--deadline-urgent);
-  background: linear-gradient(90deg, rgba(253, 126, 20, 0.05) 0%, var(--color-surface) 100%);
-}
-
-.deadline-alert-item {
-  background: var(--color-secondary);
-  border-radius: var(--radius-sm);
-  padding: 1rem;
-  margin-bottom: 0.75rem;
-  border-left: 3px solid transparent;
-  transition: all 0.3s ease;
-}
-
-.deadline-alert-item:hover {
-  transform: translateX(2px);
-  box-shadow: var(--shadow-sm);
-}
-
-.deadline-alert-item.overdue {
-  border-left-color: var(--deadline-overdue);
-  background: rgba(220, 53, 69, 0.08);
-}
-
-.deadline-alert-item.today {
-  border-left-color: var(--deadline-urgent);
-  background: rgba(253, 126, 20, 0.08);
-}
-
-.deadline-alert-item.urgent {
-  border-left-color: var(--deadline-warning);
-  background: rgba(255, 193, 7, 0.08);
-}
-
-.deadline-alert-item.safe {
-  border-left-color: var(--deadline-safe);
-  background: rgba(40, 167, 69, 0.08);
-}
-
-.deadline-alert-title {
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-  font-size: 0.95rem;
-}
-
-.deadline-alert-info {
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.deadline-badge {
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.deadline-badge.deadline-safe {
-  background: rgba(40, 167, 69, 0.15);
-  color: var(--deadline-safe);
-}
-
-.deadline-badge.deadline-warning {
-  background: rgba(255, 193, 7, 0.15);
-  color: var(--deadline-warning);
-}
-
-.deadline-badge.deadline-urgent {
-  background: rgba(253, 126, 20, 0.15);
-  color: var(--deadline-urgent);
-}
-
-.deadline-badge.deadline-overdue {
-  background: rgba(220, 53, 69, 0.15);
-  color: var(--deadline-overdue);
-}
-
 /* Recent Tasks */
 .recent-task-item {
   padding: 1.25rem;
@@ -1868,22 +1868,6 @@ a:hover { color: var(--color-primary-hover); }
 
 .table tbody tr:hover {
   background: rgba(33, 150, 243, 0.05);
-}
-
-/* Progress bars in tables */
-.progress {
-  height: 22px;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.progress-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 600;
-  transition: width 0.6s ease;
 }
 
 /* Enhanced Buttons */
@@ -2093,6 +2077,36 @@ a:hover { color: var(--color-primary-hover); }
   border-left: 4px solid var(--ce-primary);
 }
 
+/* Professional styling improvements */
+.card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-card-border);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow var(--duration-normal) var(--ease-standard);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.card-body {
+  padding: var(--space-20);
+}
+
+.card-header,
+.card-footer {
+  padding: var(--space-20);
+  border-bottom: 1px solid var(--color-card-border-inner);
+}
+
+.card-title {
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .sidebar {
@@ -2241,36 +2255,6 @@ a:hover { color: var(--color-primary-hover); }
 
 .ms-2 {
   margin-left: 0.5rem !important;
-}
-
-/* Professional styling improvements */
-.card {
-  background-color: var(--color-surface);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-card-border);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-  transition: box-shadow var(--duration-normal) var(--ease-standard);
-}
-
-.card:hover {
-  box-shadow: var(--shadow-md);
-}
-
-.card-body {
-  padding: var(--space-20);
-}
-
-.card-header,
-.card-footer {
-  padding: var(--space-20);
-  border-bottom: 1px solid var(--color-card-border-inner);
-}
-
-.card-title {
-  margin-bottom: 0.75rem;
-  font-weight: 600;
-  font-size: 1.125rem;
 }
 
 /* Focus states */

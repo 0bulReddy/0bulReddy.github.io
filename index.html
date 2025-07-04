@@ -22,13 +22,13 @@
             <form id="loginForm">
                 <div class="form-group mb-3">
                     <label for="loginUsername" class="form-label">Username</label>
-                    <input type="text" class="form-control" id="loginUsername" required>
+                    <input type="text" class="form-control" id="loginUsername" required placeholder="Enter your username">
                 </div>
                 <div class="form-group mb-3">
                     <label for="loginPassword" class="form-label">Password</label>
-                    <input type="password" class="form-control" id="loginPassword" required>
+                    <input type="password" class="form-control" id="loginPassword" required placeholder="Enter your password">
                 </div>
-                <button type="submit" class="btn btn-primary w-100 mb-3">Login</button>
+                <button type="submit" class="btn btn-primary w-100 mb-3">Sign In</button>
             </form>
             
             <div class="text-center">
@@ -541,195 +541,22 @@
                         </div>
                     </div>
                 </div>
-                <div class="row mt-4">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Edit Requests Management</h5>
-                                <div id="adminEditRequests">
-                                    <!-- All edit requests for admin will be populated here -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
-            <!-- Team Progress Section -->
+            <!-- Other sections placeholders -->
             <div id="teamProgressSection" class="content-section admin-only" style="display: none;">
                 <h2>Team Progress Dashboard</h2>
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Team Performance Overview</h5>
-                                <div class="row" id="teamStatsCards">
-                                    <!-- Team stats will be populated here -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row mt-4">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">User Progress Chart</h5>
-                                <div class="chart-container">
-                                    <canvas id="userProgressChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Team Productivity</h5>
-                                <div class="chart-container">
-                                    <canvas id="teamProductivityChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row mt-4">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Individual User Statistics</h5>
-                                <div class="table-responsive">
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>User</th>
-                                                <th>Total Tasks</th>
-                                                <th>Completed</th>
-                                                <th>In Progress</th>
-                                                <th>Overdue</th>
-                                                <th>Completion Rate</th>
-                                                <th>Progress</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="userStatsTable">
-                                            <!-- User stats will be populated here -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <p>Team progress features coming soon...</p>
             </div>
 
-            <!-- Reports Section -->
             <div id="reportsSection" class="content-section admin-only" style="display: none;">
                 <h2>Reports Generator</h2>
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Generate PDF Reports</h5>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group mb-3">
-                                            <label for="reportType" class="form-label">Report Type</label>
-                                            <select class="form-control" id="reportType">
-                                                <option value="team-summary">Team Summary Report</option>
-                                                <option value="task-completion">Task Completion Report</option>
-                                                <option value="user-productivity">User Productivity Report</option>
-                                                <option value="project-timeline">Project Timeline Report</option>
-                                                <option value="admin-overview">Administrative Overview</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group mb-3">
-                                            <label for="reportDateRange" class="form-label">Date Range</label>
-                                            <select class="form-control" id="reportDateRange">
-                                                <option value="all">All Time</option>
-                                                <option value="last-7-days">Last 7 Days</option>
-                                                <option value="last-30-days">Last 30 Days</option>
-                                                <option value="last-90-days">Last 90 Days</option>
-                                                <option value="current-year">Current Year</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button class="btn btn-primary" id="generateReportBtn">
-                                    <i class="fas fa-file-pdf"></i> Generate PDF Report
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <button class="btn btn-primary" id="generateReportBtn">Generate PDF Report</button>
             </div>
 
-            <!-- Settings Section -->
             <div id="settingsSection" class="content-section admin-only" style="display: none;">
                 <h2>Application Settings</h2>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">General Settings</h5>
-                                <form id="settingsForm">
-                                    <div class="mb-3">
-                                        <label for="appName" class="form-label">Application Name</label>
-                                        <input type="text" class="form-control" id="appName" value="Civil Engineering Task Manager">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="companyName" class="form-label">Company Name</label>
-                                        <input type="text" class="form-control" id="companyName" value="Civil Engineering Solutions">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="companyLogo" class="form-label">Company Logo (Emoji)</label>
-                                        <input type="text" class="form-control" id="companyLogo" value="🏗️">
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Menu Configuration</h5>
-                                <form id="menuConfigForm">
-                                    <div class="mb-3">
-                                        <label for="menuOverview" class="form-label">Overview Menu Name</label>
-                                        <input type="text" class="form-control" id="menuOverview" value="Overview">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="menuTasks" class="form-label">Tasks Menu Name</label>
-                                        <input type="text" class="form-control" id="menuTasks" value="My Tasks">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="menuSchedule" class="form-label">Schedule Menu Name</label>
-                                        <input type="text" class="form-control" id="menuSchedule" value="Schedule">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="menuProfile" class="form-label">Profile Menu Name</label>
-                                        <input type="text" class="form-control" id="menuProfile" value="Profile">
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row mt-4">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Feature Settings</h5>
-                                <button type="button" class="btn btn-primary" id="saveSettingsBtn">
-                                    <i class="fas fa-save"></i> Save Settings
-                                </button>
-                                <button type="button" class="btn btn-secondary ms-2" id="resetSettingsBtn">
-                                    <i class="fas fa-undo"></i> Reset to Default
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <p>Settings features coming soon...</p>
             </div>
         </div>
     </div>
