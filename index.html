@@ -35,12 +35,6 @@
                 <span class="text-muted">Don't have an account? </span>
                 <a href="#" id="showRegister" class="text-primary">Register here</a>
             </div>
-            
-            <div class="text-center mt-3">
-                <small class="text-muted">
-                    <strong>Admin Access:</strong> username: admin, password: admin123
-                </small>
-            </div>
         </div>
     </div>
 
@@ -101,13 +95,14 @@
                     <i class="fas fa-calendar-alt"></i>
                     <span id="navSchedule">Schedule</span>
                 </a>
-                <a href="#" class="nav-item" data-section="team-chat">
+                <a href="#" class="nav-item" data-section="chat">
                     <i class="fas fa-comments"></i>
-                    <span>Team Chat</span>
+                    <span>Chat</span>
+                    <span class="chat-notification-badge" id="chatNotificationBadge" style="display: none;"></span>
                 </a>
-                <a href="#" class="nav-item" data-section="task-history">
+                <a href="#" class="nav-item" data-section="history">
                     <i class="fas fa-history"></i>
-                    <span>Task History</span>
+                    <span>History</span>
                 </a>
                 <a href="#" class="nav-item" data-section="edit-requests">
                     <i class="fas fa-edit"></i>
@@ -154,6 +149,10 @@
                     </div>
                 </div>
                 <div class="user-info">
+                    <span class="user-status-indicator" id="userStatusIndicator">
+                        <i class="fas fa-circle text-success"></i>
+                        <span>Online</span>
+                    </span>
                     <span id="userWelcome">Welcome, User!</span>
                     <span class="badge" id="userRole">User</span>
                 </div>
@@ -278,13 +277,26 @@
                     </button>
                 </div>
                 
+                <!-- Task Filter Tabs -->
+                <ul class="nav nav-tabs mb-3" id="taskTabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#ongoingTasks" data-bs-toggle="tab">
+                            <i class="fas fa-tasks"></i> Ongoing Tasks
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#completedTasks" data-bs-toggle="tab">
+                            <i class="fas fa-check-circle"></i> Completed Tasks
+                        </a>
+                    </li>
+                </ul>
+
                 <div class="row mb-3">
                     <div class="col-md-2">
                         <select class="form-control" id="statusFilter">
                             <option value="">All Statuses</option>
                             <option value="Not Started">Not Started</option>
                             <option value="In Progress">In Progress</option>
-                            <option value="Pending Response">Pending Response</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -313,34 +325,60 @@
                         <input type="text" class="form-control" id="searchTasks" placeholder="Search tasks...">
                     </div>
                 </div>
-                
-                <div id="tasksList" class="tasks-list">
-                    <!-- Tasks will be populated here -->
+
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="ongoingTasks">
+                        <div id="ongoingTasksList" class="tasks-list">
+                            <!-- Ongoing tasks will be populated here -->
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="completedTasks">
+                        <div id="completedTasksList" class="tasks-list">
+                            <!-- Completed tasks will be populated here -->
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Team Chat Section -->
-            <div id="teamChatSection" class="content-section" style="display: none;">
+            <!-- Chat Section -->
+            <div id="chatSection" class="content-section" style="display: none;">
                 <div class="row">
-                    <div class="col-md-12">
-                        <div class="card chat-container">
+                    <div class="col-md-4">
+                        <div class="card chat-users-card">
                             <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-comments"></i>
-                                    Team Chat
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-users"></i> Team Members
                                 </h5>
                             </div>
                             <div class="card-body p-0">
-                                <div id="chatMessages" class="chat-messages">
-                                    <!-- Chat messages will be populated here -->
+                                <div id="chatUsersList" class="chat-users-list">
+                                    <!-- Chat users will be populated here -->
                                 </div>
-                                <div class="chat-input">
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" id="messageInput" placeholder="Type your message..." maxlength="500">
-                                        <button class="btn btn-primary" id="sendMessageBtn">
-                                            <i class="fas fa-paper-plane"></i>
-                                        </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card chat-main-card">
+                            <div class="card-header chat-header">
+                                <div id="chatHeader" class="d-flex align-items-center">
+                                    <i class="fas fa-comments me-2"></i>
+                                    <span>Select a user to start chatting</span>
+                                </div>
+                            </div>
+                            <div class="card-body chat-messages-container">
+                                <div id="chatMessages" class="chat-messages">
+                                    <div class="text-center text-muted">
+                                        <i class="fas fa-comments fa-3x mb-3"></i>
+                                        <p>Select a team member to start a conversation</p>
                                     </div>
+                                </div>
+                            </div>
+                            <div class="card-footer chat-input-container">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="chatMessageInput" placeholder="Type your message..." disabled>
+                                    <button class="btn btn-primary" id="sendMessageBtn" disabled>
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -348,22 +386,38 @@
                 </div>
             </div>
 
-            <!-- Task History Section -->
-            <div id="taskHistorySection" class="content-section" style="display: none;">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2>Task History</h2>
-                    <div class="d-flex gap-2">
-                        <select class="form-control" id="historyPriorityFilter" style="width: auto;">
-                            <option value="">All Priorities</option>
-                            <option value="High">High</option>
-                            <option value="Medium">Medium</option>
-                            <option value="Low">Low</option>
-                        </select>
-                        <input type="date" class="form-control" id="historyDateFilter" style="width: auto;">
+            <!-- History Section -->
+            <div id="historySection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-history"></i> Task History & Activities
+                        </h5>
                     </div>
-                </div>
-                <div id="taskHistoryList">
-                    <!-- Task history will be populated here -->
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <select class="form-control" id="historyFilter">
+                                    <option value="">All Activities</option>
+                                    <option value="created">Task Created</option>
+                                    <option value="completed">Task Completed</option>
+                                    <option value="edited">Task Edited</option>
+                                    <option value="assigned">Task Assigned</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-control" id="historyUserFilter">
+                                    <option value="">All Users</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" class="form-control" id="historySearch" placeholder="Search history...">
+                            </div>
+                        </div>
+                        <div id="historyTimeline" class="history-timeline">
+                            <!-- History timeline will be populated here -->
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -742,15 +796,14 @@
                                     <select class="form-control" id="taskStatus" required>
                                         <option value="Not Started">Not Started</option>
                                         <option value="In Progress">In Progress</option>
-                                        <option value="Pending Response">Pending Response</option>
                                         <option value="Completed">Completed</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
-                        <div id="remarksSection" class="mb-3" style="display: none;">
-                            <label for="taskRemarks" class="form-label">Completion Remarks *</label>
-                            <textarea class="form-control" id="taskRemarks" rows="3" placeholder="Please describe what was completed and any notes..."></textarea>
+                        <div class="mb-3" id="taskRemarksContainer" style="display: none;">
+                            <label for="taskRemarks" class="form-label">Completion Remarks</label>
+                            <textarea class="form-control" id="taskRemarks" rows="3" placeholder="Please describe what was accomplished, any challenges faced, and any additional notes..."></textarea>
                         </div>
                     </form>
                 </div>
@@ -837,6 +890,7 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
     <script src="app.js"></script>
