@@ -95,6 +95,14 @@
                     <i class="fas fa-calendar-alt"></i>
                     <span id="navSchedule">Schedule</span>
                 </a>
+                <a href="#" class="nav-item" data-section="team-chat">
+                    <i class="fas fa-comments"></i>
+                    <span>Team Chat</span>
+                </a>
+                <a href="#" class="nav-item" data-section="task-history">
+                    <i class="fas fa-history"></i>
+                    <span>Task History</span>
+                </a>
                 <a href="#" class="nav-item" data-section="edit-requests">
                     <i class="fas fa-edit"></i>
                     <span>Edit Requests</span>
@@ -270,7 +278,7 @@
                             <option value="">All Statuses</option>
                             <option value="Not Started">Not Started</option>
                             <option value="In Progress">In Progress</option>
-                            <option value="Completed">Completed</option>
+                            <option value="Pending Response">Pending Response</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -302,6 +310,54 @@
                 
                 <div id="tasksList" class="tasks-list">
                     <!-- Tasks will be populated here -->
+                </div>
+            </div>
+
+            <!-- Team Chat Section -->
+            <div id="teamChatSection" class="content-section" style="display: none;">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card chat-container">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-comments"></i>
+                                    Team Chat
+                                </h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="chatMessages" class="chat-messages">
+                                    <!-- Chat messages will be populated here -->
+                                </div>
+                                <div class="chat-input">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="messageInput" placeholder="Type your message..." maxlength="500">
+                                        <button class="btn btn-primary" id="sendMessageBtn">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task History Section -->
+            <div id="taskHistorySection" class="content-section" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Task History</h2>
+                    <div class="d-flex gap-2">
+                        <select class="form-control" id="historyPriorityFilter" style="width: auto;">
+                            <option value="">All Priorities</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                        <input type="date" class="form-control" id="historyDateFilter" style="width: auto;">
+                    </div>
+                </div>
+                <div id="taskHistoryList">
+                    <!-- Task history will be populated here -->
                 </div>
             </div>
 
@@ -680,10 +736,15 @@
                                     <select class="form-control" id="taskStatus" required>
                                         <option value="Not Started">Not Started</option>
                                         <option value="In Progress">In Progress</option>
+                                        <option value="Pending Response">Pending Response</option>
                                         <option value="Completed">Completed</option>
                                     </select>
                                 </div>
                             </div>
+                        </div>
+                        <div id="remarksSection" class="mb-3" style="display: none;">
+                            <label for="taskRemarks" class="form-label">Completion Remarks *</label>
+                            <textarea class="form-control" id="taskRemarks" rows="3" placeholder="Please describe what was completed and any notes..."></textarea>
                         </div>
                     </form>
                 </div>

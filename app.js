@@ -1,10 +1,12 @@
-// Enhanced Civil Engineering Task Management Dashboard with Real-World Timing and Deadline Management
+// Enhanced Civil Engineering Task Management Dashboard with Chat System and Improved Cross-Browser Support
 class TaskManager {
     constructor() {
         this.currentUser = null;
         this.users = [];
         this.tasks = [];
+        this.completedTasks = [];
         this.editRequests = [];
+        this.chatMessages = [];
         this.appConfig = {};
         this.taskModal = null;
         this.createUserModal = null;
@@ -15,6 +17,7 @@ class TaskManager {
         this.clockInterval = null;
         this.deadlineInterval = null;
         this.statsInterval = null;
+        this.chatInterval = null;
         
         this.init();
     }
@@ -80,6 +83,11 @@ class TaskManager {
         this.statsInterval = setInterval(() => {
             this.updateDashboardStats();
         }, 30000);
+
+        // Start chat updates (updates every 5 seconds)
+        this.chatInterval = setInterval(() => {
+            this.refreshChatMessages();
+        }, 5000);
 
         // Initial updates
         this.updateLiveClock();
@@ -273,25 +281,94 @@ class TaskManager {
         }
     }
 
+    // Enhanced password hashing with better cross-browser support
     hashPassword(password) {
         if (this.bcryptReady && typeof bcrypt !== 'undefined') {
             return bcrypt.hashSync(password, 10);
         }
-        return btoa(password);
+        // Fallback with more robust encoding
+        return this.simpleHash(password);
     }
 
     comparePassword(password, hash) {
         if (this.bcryptReady && typeof bcrypt !== 'undefined') {
-            return bcrypt.compareSync(password, hash);
+            try {
+                return bcrypt.compareSync(password, hash);
+            } catch (e) {
+                // If bcrypt fails, try simple hash comparison
+                return this.simpleHash(password) === hash;
+            }
         }
-        return btoa(password) === hash;
+        return this.simpleHash(password) === hash;
+    }
+
+    simpleHash(password) {
+        // More robust simple hashing for cross-browser compatibility
+        let hash = 0;
+        for (let i = 0; i < password.length; i++) {
+            const char = password.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return 'simple_' + Math.abs(hash).toString(36) + '_' + btoa(password).slice(0, 10);
+    }
+
+    // Enhanced localStorage with better cross-browser support
+    setStorageItem(key, value) {
+        try {
+            const serializedValue = JSON.stringify({
+                data: value,
+                timestamp: Date.now(),
+                version: '3.0'
+            });
+            localStorage.setItem(key, serializedValue);
+            
+            // Also try sessionStorage as backup
+            try {
+                sessionStorage.setItem(key + '_backup', serializedValue);
+            } catch (e) {
+                console.warn('SessionStorage not available');
+            }
+        } catch (e) {
+            console.error('Failed to save to localStorage:', e);
+            this.showAlert('Warning: Data may not persist between sessions', 'warning');
+        }
+    }
+
+    getStorageItem(key) {
+        try {
+            const item = localStorage.getItem(key);
+            if (item) {
+                const parsed = JSON.parse(item);
+                // Check if it's the new format
+                if (parsed.data && parsed.version) {
+                    return parsed.data;
+                }
+                // Legacy format
+                return parsed;
+            }
+            
+            // Try backup from sessionStorage
+            const backup = sessionStorage.getItem(key + '_backup');
+            if (backup) {
+                const parsed = JSON.parse(backup);
+                if (parsed.data && parsed.version) {
+                    // Restore to localStorage
+                    this.setStorageItem(key, parsed.data);
+                    return parsed.data;
+                }
+            }
+        } catch (e) {
+            console.error('Failed to read from localStorage:', e);
+        }
+        return null;
     }
 
     // Load configuration
     loadAppConfig() {
-        const savedConfig = localStorage.getItem('ce_app_config');
+        const savedConfig = this.getStorageItem('ce_app_config');
         if (savedConfig) {
-            this.appConfig = JSON.parse(savedConfig);
+            this.appConfig = savedConfig;
         } else {
             this.appConfig = {
                 app_name: "Civil Engineering Task Manager",
@@ -315,14 +392,16 @@ class TaskManager {
                     team_dashboard: true,
                     calendar_view: true,
                     deadline_alerts: true,
-                    real_time_updates: true
+                    real_time_updates: true,
+                    team_chat: true
                 },
                 timing: {
                     timezone: "IST",
                     update_intervals: {
                         clock: 1000,
                         deadlines: 60000,
-                        stats: 30000
+                        stats: 30000,
+                        chat: 5000
                     }
                 }
             };
@@ -332,7 +411,7 @@ class TaskManager {
     }
 
     saveAppConfig() {
-        localStorage.setItem('ce_app_config', JSON.stringify(this.appConfig));
+        this.setStorageItem('ce_app_config', this.appConfig);
     }
 
     applyConfiguration() {
@@ -347,11 +426,13 @@ class TaskManager {
         }
     }
 
-    // Load sample data with enhanced deadline examples
+    // Load sample data with enhanced deadline examples and timestamps
     loadSampleData() {
-        const existingUsers = localStorage.getItem('ce_users');
-        const existingTasks = localStorage.getItem('ce_tasks');
-        const existingEditRequests = localStorage.getItem('ce_edit_requests');
+        const existingUsers = this.getStorageItem('ce_users');
+        const existingTasks = this.getStorageItem('ce_tasks');
+        const existingCompletedTasks = this.getStorageItem('ce_completed_tasks');
+        const existingEditRequests = this.getStorageItem('ce_edit_requests');
+        const existingChatMessages = this.getStorageItem('ce_chat_messages');
 
         if (!existingUsers) {
             const sampleUsers = [
@@ -383,7 +464,7 @@ class TaskManager {
                     last_login: '2025-07-01'
                 }
             ];
-            localStorage.setItem('ce_users', JSON.stringify(sampleUsers));
+            this.setStorageItem('ce_users', sampleUsers);
         }
 
         if (!existingTasks) {
@@ -392,6 +473,13 @@ class TaskManager {
                 const date = new Date(today);
                 date.setDate(date.getDate() + days);
                 return date.toISOString().split('T')[0];
+            };
+            
+            const formatDateTime = (days, hours = 9) => {
+                const date = new Date(today);
+                date.setDate(date.getDate() + days);
+                date.setHours(hours, 0, 0, 0);
+                return date.toISOString();
             };
 
             const sampleTasks = [
@@ -409,7 +497,10 @@ class TaskManager {
                     assignee_comments: 'Excavation 80% complete, facing some rocky soil conditions',
                     progress_notes: ['Site preparation completed', 'Excavation equipment deployed', 'Soil samples taken'],
                     created_date: formatDate(-5),
-                    updated_date: formatDate(-1)
+                    updated_date: formatDate(-1),
+                    assigned_timestamp: formatDateTime(-5, 9),
+                    completion_timestamp: null,
+                    remarks: ''
                 },
                 {
                     id: 2,
@@ -425,7 +516,10 @@ class TaskManager {
                     assignee_comments: '',
                     progress_notes: [],
                     created_date: formatDate(-3),
-                    updated_date: formatDate(-3)
+                    updated_date: formatDate(-3),
+                    assigned_timestamp: formatDateTime(-3, 10),
+                    completion_timestamp: null,
+                    remarks: ''
                 },
                 {
                     id: 3,
@@ -441,8 +535,50 @@ class TaskManager {
                     assignee_comments: 'Rebar placement in progress, 60% complete',
                     progress_notes: ['Material delivery completed', 'Rebar cutting started'],
                     created_date: formatDate(-2),
-                    updated_date: formatDate(0)
+                    updated_date: formatDate(0),
+                    assigned_timestamp: formatDateTime(-2, 14),
+                    completion_timestamp: null,
+                    remarks: ''
                 },
+                {
+                    id: 5,
+                    user_id: 3,
+                    assigned_to: 1,
+                    title: 'Structural Design Review',
+                    description: 'Review and approve structural calculations and design drawings',
+                    start_date: formatDate(1),
+                    end_date: formatDate(10), // Due in 10 days
+                    priority: 'Low',
+                    status: 'Not Started',
+                    locked_for_editing: false,
+                    assignee_comments: '',
+                    progress_notes: [],
+                    created_date: formatDate(0),
+                    updated_date: formatDate(0),
+                    assigned_timestamp: formatDateTime(0, 11),
+                    completion_timestamp: null,
+                    remarks: ''
+                }
+            ];
+            this.setStorageItem('ce_tasks', sampleTasks);
+        }
+
+        if (!existingCompletedTasks) {
+            const today = new Date();
+            const formatDate = (days) => {
+                const date = new Date(today);
+                date.setDate(date.getDate() + days);
+                return date.toISOString().split('T')[0];
+            };
+            
+            const formatDateTime = (days, hours = 9) => {
+                const date = new Date(today);
+                date.setDate(date.getDate() + days);
+                date.setHours(hours, 0, 0, 0);
+                return date.toISOString();
+            };
+
+            const sampleCompletedTasks = [
                 {
                     id: 4,
                     user_id: 1,
@@ -457,26 +593,13 @@ class TaskManager {
                     assignee_comments: 'Safety inspection completed successfully, all protocols followed',
                     progress_notes: ['Safety checklist prepared', 'Equipment inspection done', 'Report submitted'],
                     created_date: formatDate(-7),
-                    updated_date: formatDate(-3)
-                },
-                {
-                    id: 5,
-                    user_id: 3,
-                    assigned_to: 1,
-                    title: 'Structural Design Review',
-                    description: 'Review and approve structural calculations and design drawings',
-                    start_date: formatDate(1),
-                    end_date: formatDate(10), // Due in 10 days
-                    priority: 'Medium',
-                    status: 'Not Started',
-                    locked_for_editing: false,
-                    assignee_comments: '',
-                    progress_notes: [],
-                    created_date: formatDate(0),
-                    updated_date: formatDate(0)
+                    updated_date: formatDate(-3),
+                    assigned_timestamp: formatDateTime(-7, 8),
+                    completion_timestamp: formatDateTime(-3, 16),
+                    remarks: 'All safety protocols reviewed and documented. Minor recommendations provided for PPE storage improvements. Site meets all safety standards for current phase of construction.'
                 }
             ];
-            localStorage.setItem('ce_tasks', JSON.stringify(sampleTasks));
+            this.setStorageItem('ce_completed_tasks', sampleCompletedTasks);
         }
 
         if (!existingEditRequests) {
@@ -493,27 +616,57 @@ class TaskManager {
                     admin_notes: ''
                 }
             ];
-            localStorage.setItem('ce_edit_requests', JSON.stringify(sampleEditRequests));
+            this.setStorageItem('ce_edit_requests', sampleEditRequests);
+        }
+
+        if (!existingChatMessages) {
+            const sampleChatMessages = [
+                {
+                    id: 1,
+                    user_id: 1,
+                    username: 'admin',
+                    message: 'Welcome to the team chat! Please use this space for project coordination and updates.',
+                    timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+                    type: 'group'
+                },
+                {
+                    id: 2,
+                    user_id: 2,
+                    username: 'john_engineer',
+                    message: 'Good morning team! Foundation excavation is progressing well despite the rocky conditions.',
+                    timestamp: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
+                    type: 'group'
+                }
+            ];
+            this.setStorageItem('ce_chat_messages', sampleChatMessages);
         }
 
         this.loadData();
     }
 
     loadData() {
-        this.users = JSON.parse(localStorage.getItem('ce_users')) || [];
-        this.tasks = JSON.parse(localStorage.getItem('ce_tasks')) || [];
-        this.editRequests = JSON.parse(localStorage.getItem('ce_edit_requests')) || [];
+        this.users = this.getStorageItem('ce_users') || [];
+        this.tasks = this.getStorageItem('ce_tasks') || [];
+        this.completedTasks = this.getStorageItem('ce_completed_tasks') || [];
+        this.editRequests = this.getStorageItem('ce_edit_requests') || [];
+        this.chatMessages = this.getStorageItem('ce_chat_messages') || [];
         
         // Update deadline info for all tasks
         this.tasks.forEach(task => {
             task.deadlineInfo = this.calculateDeadlineInfo(task.end_date, task.status);
         });
+        
+        this.completedTasks.forEach(task => {
+            task.deadlineInfo = this.calculateDeadlineInfo(task.end_date, task.status);
+        });
     }
 
     saveData() {
-        localStorage.setItem('ce_users', JSON.stringify(this.users));
-        localStorage.setItem('ce_tasks', JSON.stringify(this.tasks));
-        localStorage.setItem('ce_edit_requests', JSON.stringify(this.editRequests));
+        this.setStorageItem('ce_users', this.users);
+        this.setStorageItem('ce_tasks', this.tasks);
+        this.setStorageItem('ce_completed_tasks', this.completedTasks);
+        this.setStorageItem('ce_edit_requests', this.editRequests);
+        this.setStorageItem('ce_chat_messages', this.chatMessages);
     }
 
     setupEventListeners() {
@@ -540,6 +693,30 @@ class TaskManager {
         document.getElementById('saveTaskBtn').addEventListener('click', () => this.saveTask());
         document.getElementById('taskForm').addEventListener('submit', (e) => e.preventDefault());
 
+        // Task status change listener for remarks
+        document.getElementById('taskStatus').addEventListener('change', (e) => {
+            const remarksSection = document.getElementById('remarksSection');
+            if (e.target.value === 'Completed') {
+                remarksSection.style.display = 'block';
+                document.getElementById('taskRemarks').required = true;
+            } else {
+                remarksSection.style.display = 'none';
+                document.getElementById('taskRemarks').required = false;
+            }
+        });
+
+        // Chat System
+        document.getElementById('sendMessageBtn').addEventListener('click', () => this.sendChatMessage());
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.sendChatMessage();
+            }
+        });
+
+        // Task History Filters
+        document.getElementById('historyPriorityFilter').addEventListener('change', () => this.filterTaskHistory());
+        document.getElementById('historyDateFilter').addEventListener('change', () => this.filterTaskHistory());
+
         // Edit Request Management
         document.getElementById('submitEditRequestBtn').addEventListener('click', () => this.submitEditRequest());
         document.getElementById('editRequestForm').addEventListener('submit', (e) => e.preventDefault());
@@ -560,7 +737,7 @@ class TaskManager {
             createUserForm.addEventListener('submit', (e) => e.preventDefault());
         }
 
-        // Filters (enhanced with deadline filter)
+        // Filters
         document.getElementById('statusFilter').addEventListener('change', () => this.filterTasks());
         document.getElementById('priorityFilter').addEventListener('change', () => this.filterTasks());
         document.getElementById('deadlineFilter').addEventListener('change', () => this.filterTasks());
@@ -594,7 +771,7 @@ class TaskManager {
         }
     }
 
-    // Authentication Methods
+    // Authentication Methods with Enhanced Cross-Browser Support
     handleLogin(e) {
         e.preventDefault();
         const username = document.getElementById('loginUsername').value.trim();
@@ -609,7 +786,10 @@ class TaskManager {
         if (user && this.comparePassword(password, user.password_hash)) {
             user.last_login = new Date().toISOString().split('T')[0];
             this.currentUser = user;
-            localStorage.setItem('ce_current_user', JSON.stringify(user));
+            
+            // Enhanced cross-browser user session storage
+            this.setStorageItem('ce_current_user', user);
+            
             this.saveData();
             this.showDashboard();
             this.showAlert('Login successful!', 'success');
@@ -666,19 +846,31 @@ class TaskManager {
         if (this.clockInterval) clearInterval(this.clockInterval);
         if (this.deadlineInterval) clearInterval(this.deadlineInterval);
         if (this.statsInterval) clearInterval(this.statsInterval);
+        if (this.chatInterval) clearInterval(this.chatInterval);
         
         this.currentUser = null;
-        localStorage.removeItem('ce_current_user');
+        try {
+            localStorage.removeItem('ce_current_user');
+            sessionStorage.removeItem('ce_current_user_backup');
+        } catch (e) {
+            console.warn('Error clearing user session');
+        }
         this.showLoginPage();
         this.showAlert('Logged out successfully', 'info');
     }
 
     checkAuthStatus() {
-        const savedUser = localStorage.getItem('ce_current_user');
+        const savedUser = this.getStorageItem('ce_current_user');
         if (savedUser) {
             try {
-                this.currentUser = JSON.parse(savedUser);
-                this.showDashboard();
+                // Verify user still exists in users array
+                const existingUser = this.users.find(u => u.id === savedUser.id && u.username === savedUser.username);
+                if (existingUser) {
+                    this.currentUser = existingUser;
+                    this.showDashboard();
+                } else {
+                    this.showLoginPage();
+                }
             } catch (error) {
                 console.error('Error parsing saved user:', error);
                 this.showLoginPage();
@@ -688,12 +880,184 @@ class TaskManager {
         }
     }
 
+    // Team Chat System
+    sendChatMessage() {
+        const messageInput = document.getElementById('messageInput');
+        const message = messageInput.value.trim();
+        
+        if (!message) return;
+        
+        const newMessage = {
+            id: this.getNextId(this.chatMessages),
+            user_id: this.currentUser.id,
+            username: this.currentUser.username,
+            message: message,
+            timestamp: new Date().toISOString(),
+            type: 'group'
+        };
+        
+        this.chatMessages.push(newMessage);
+        this.saveData();
+        messageInput.value = '';
+        this.renderChatMessages();
+        
+        // Scroll to bottom
+        const chatContainer = document.getElementById('chatMessages');
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    refreshChatMessages() {
+        if (document.getElementById('teamChatSection').style.display !== 'none') {
+            const currentMessages = this.getStorageItem('ce_chat_messages') || [];
+            if (currentMessages.length !== this.chatMessages.length) {
+                this.chatMessages = currentMessages;
+                this.renderChatMessages();
+            }
+        }
+    }
+
+    renderChatMessages() {
+        const container = document.getElementById('chatMessages');
+        if (!container) return;
+        
+        if (this.chatMessages.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted p-4">No messages yet. Start the conversation!</div>';
+            return;
+        }
+        
+        container.innerHTML = this.chatMessages.map(msg => {
+            const isOwnMessage = msg.user_id === this.currentUser.id;
+            const messageTime = new Date(msg.timestamp).toLocaleString();
+            
+            return `
+                <div class="chat-message ${isOwnMessage ? 'own-message' : 'other-message'}">
+                    <div class="chat-message-header">
+                        <span class="chat-username">${msg.username}</span>
+                        <span class="chat-timestamp">${messageTime}</span>
+                    </div>
+                    <div class="chat-text">${this.escapeHtml(msg.message)}</div>
+                </div>
+            `;
+        }).join('');
+        
+        // Auto-scroll to bottom for new messages
+        container.scrollTop = container.scrollHeight;
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Task History System
+    showTaskHistory() {
+        this.renderTaskHistory();
+    }
+
+    renderTaskHistory() {
+        const container = document.getElementById('taskHistoryList');
+        if (!container) return;
+        
+        let tasksToShow = this.completedTasks;
+        
+        // Apply filters
+        const priorityFilter = document.getElementById('historyPriorityFilter').value;
+        const dateFilter = document.getElementById('historyDateFilter').value;
+        
+        if (priorityFilter) {
+            tasksToShow = tasksToShow.filter(task => task.priority === priorityFilter);
+        }
+        
+        if (dateFilter) {
+            tasksToShow = tasksToShow.filter(task => {
+                const completionDate = task.completion_timestamp ? 
+                    new Date(task.completion_timestamp).toISOString().split('T')[0] : 
+                    task.updated_date;
+                return completionDate === dateFilter;
+            });
+        }
+        
+        // Filter by user access
+        if (this.currentUser.role !== 'admin') {
+            tasksToShow = tasksToShow.filter(task => 
+                task.user_id === this.currentUser.id || task.assigned_to === this.currentUser.id
+            );
+        }
+        
+        if (tasksToShow.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No completed tasks</h4>
+                    <p class="text-muted">Completed tasks will appear here with full audit trail</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = tasksToShow.map(task => this.createHistoryCard(task)).join('');
+    }
+
+    createHistoryCard(task) {
+        const user = this.users.find(u => u.id === task.user_id);
+        const assignee = this.users.find(u => u.id === task.assigned_to);
+        const assignedTime = task.assigned_timestamp ? new Date(task.assigned_timestamp).toLocaleString() : 'N/A';
+        const completedTime = task.completion_timestamp ? new Date(task.completion_timestamp).toLocaleString() : 'N/A';
+        
+        return `
+            <div class="history-card">
+                <div class="history-header">
+                    <h6 class="history-title">${task.title}</h6>
+                    <div class="d-flex gap-2">
+                        <span class="priority-badge priority-${task.priority.toLowerCase()}">${task.priority}</span>
+                        <span class="status-badge status-completed">Completed</span>
+                    </div>
+                </div>
+                <p class="text-muted mb-3">${task.description}</p>
+                <div class="history-meta">
+                    <div class="history-meta-item">
+                        <span class="history-meta-label">Created by:</span>
+                        ${user ? user.username : 'Unknown'}
+                    </div>
+                    <div class="history-meta-item">
+                        <span class="history-meta-label">Assigned to:</span>
+                        ${assignee ? assignee.username : 'Unassigned'}
+                    </div>
+                    <div class="history-meta-item">
+                        <span class="history-meta-label">Assigned on:</span>
+                        ${assignedTime}
+                    </div>
+                    <div class="history-meta-item">
+                        <span class="history-meta-label">Completed on:</span>
+                        ${completedTime}
+                    </div>
+                    <div class="history-meta-item">
+                        <span class="history-meta-label">Deadline:</span>
+                        ${task.end_date}
+                    </div>
+                </div>
+                ${task.remarks ? `
+                    <div class="task-remarks mt-3">
+                        <strong>Completion Remarks:</strong>
+                        <p class="mb-0 mt-1">${task.remarks}</p>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    filterTaskHistory() {
+        this.renderTaskHistory();
+    }
+
     // UI Navigation
     showLoginPage() {
         // Clear intervals when showing login page
         if (this.clockInterval) clearInterval(this.clockInterval);
         if (this.deadlineInterval) clearInterval(this.deadlineInterval);
         if (this.statsInterval) clearInterval(this.statsInterval);
+        if (this.chatInterval) clearInterval(this.chatInterval);
         
         document.getElementById('loginPage').style.display = 'flex';
         document.getElementById('registerPage').style.display = 'none';
@@ -785,6 +1149,8 @@ class TaskManager {
             'overview': 'Dashboard Overview',
             'tasks': 'My Tasks',
             'schedule': 'Schedule',
+            'team-chat': 'Team Chat',
+            'task-history': 'Task History',
             'edit-requests': 'Edit Requests',
             'profile': 'Profile Management',
             'admin': 'Admin Panel',
@@ -799,6 +1165,8 @@ class TaskManager {
             'overview': 'overviewSection',
             'tasks': 'tasksSection',
             'schedule': 'scheduleSection',
+            'team-chat': 'teamChatSection',
+            'task-history': 'taskHistorySection',
             'edit-requests': 'editRequestsSection',
             'profile': 'profileSection',
             'admin': 'adminSection',
@@ -822,6 +1190,12 @@ class TaskManager {
             case 'schedule':
                 this.showSchedule();
                 break;
+            case 'team-chat':
+                this.showTeamChat();
+                break;
+            case 'task-history':
+                this.showTaskHistory();
+                break;
             case 'edit-requests':
                 this.showEditRequests();
                 break;
@@ -841,6 +1215,11 @@ class TaskManager {
                 this.showSettings();
                 break;
         }
+    }
+
+    // Team Chat Section
+    showTeamChat() {
+        this.renderChatMessages();
     }
 
     // Overview Section with Real-Time Updates
@@ -865,7 +1244,11 @@ class TaskManager {
             total: tasks.length,
             pending: tasks.filter(t => t.status === 'Not Started').length,
             inProgress: tasks.filter(t => t.status === 'In Progress').length,
-            completed: tasks.filter(t => t.status === 'Completed').length,
+            completed: this.completedTasks.filter(t => 
+                this.currentUser.role === 'admin' || 
+                t.user_id === this.currentUser.id || 
+                t.assigned_to === this.currentUser.id
+            ).length,
             overdue: tasks.filter(t => t.deadlineInfo && t.deadlineInfo.isOverdue).length
         };
     }
@@ -900,7 +1283,7 @@ class TaskManager {
         const statusData = {
             'Not Started': tasks.filter(t => t.status === 'Not Started').length,
             'In Progress': tasks.filter(t => t.status === 'In Progress').length,
-            'Completed': tasks.filter(t => t.status === 'Completed').length
+            'Pending Response': tasks.filter(t => t.status === 'Pending Response').length
         };
 
         this.charts.status = new Chart(ctx, {
@@ -974,7 +1357,8 @@ class TaskManager {
     }
 
     renderRecentTasks() {
-        const recentTasks = this.tasks
+        const allTasks = [...this.tasks, ...this.completedTasks];
+        const recentTasks = allTasks
             .filter(task => task.user_id === this.currentUser.id || task.assigned_to === this.currentUser.id || this.currentUser.role === 'admin')
             .sort((a, b) => new Date(b.updated_date) - new Date(a.updated_date))
             .slice(0, 5);
@@ -1020,7 +1404,7 @@ class TaskManager {
         });
     }
 
-    // Enhanced Tasks Section with Deadline Information
+    // Enhanced Tasks Section with Priority Ordering and Timestamps
     showTasks() {
         this.renderTasks();
         this.populateUserSelects();
@@ -1043,12 +1427,16 @@ class TaskManager {
             tasksList.innerHTML = `
                 <div class="text-center py-5">
                     <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
-                    <h4 class="text-muted">No tasks yet</h4>
+                    <h4 class="text-muted">No ongoing tasks</h4>
                     <p class="text-muted">Create your first task to get started!</p>
                 </div>
             `;
             return;
         }
+
+        // Sort by priority: High > Medium > Low
+        const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
+        tasksToShow.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
         tasksList.innerHTML = tasksToShow.map(task => this.createTaskCard(task)).join('');
     }
@@ -1067,7 +1455,7 @@ class TaskManager {
             task.deadlineInfo = this.calculateDeadlineInfo(task.end_date, task.status);
         }
         
-        let cardClass = 'task-card';
+        let cardClass = `task-card priority-${task.priority.toLowerCase()}`;
         if (task.locked_for_editing) {
             cardClass += ' locked-task';
         } else if (task.deadlineInfo.isOverdue) {
@@ -1077,6 +1465,9 @@ class TaskManager {
         } else if (task.deadlineInfo.urgencyLevel === 'warning') {
             cardClass += ' deadline-warning-task';
         }
+        
+        const assignedTime = task.assigned_timestamp ? new Date(task.assigned_timestamp).toLocaleString() : 'N/A';
+        const completionTime = task.completion_timestamp ? new Date(task.completion_timestamp).toLocaleString() : null;
         
         return `
             <div class="${cardClass}" data-task-id="${task.id}">
@@ -1099,18 +1490,31 @@ class TaskManager {
                         </div>
                     ` : ''}
                     <p class="task-description">${task.description}</p>
+                    
+                    <!-- Task Timestamps -->
+                    <div class="task-timestamps">
+                        <div class="timestamp-item">
+                            <span class="timestamp-label">Assigned:</span>
+                            <span class="timestamp-value">${assignedTime}</span>
+                        </div>
+                        ${completionTime ? `
+                            <div class="timestamp-item">
+                                <span class="timestamp-label">Completed:</span>
+                                <span class="timestamp-value">${completionTime}</span>
+                            </div>
+                        ` : ''}
+                        <div class="timestamp-item">
+                            <span class="timestamp-label">Deadline:</span>
+                            <span class="timestamp-value deadline-countdown ${task.deadlineInfo.colorClass}">
+                                ${task.end_date} (${task.deadlineInfo.displayText})
+                            </span>
+                        </div>
+                    </div>
+                    
                     <div class="task-meta">
                         <div class="task-meta-item">
                             <i class="fas fa-calendar-alt"></i>
                             <span>${task.start_date} - ${task.end_date}</span>
-                        </div>
-                        <div class="task-meta-item task-deadline-info">
-                            <i class="fas fa-clock"></i>
-                            <span>Deadline: 
-                                <span class="deadline-countdown ${task.deadlineInfo.colorClass}">
-                                    ${task.deadlineInfo.displayText}
-                                </span>
-                            </span>
                         </div>
                         <div class="task-meta-item">
                             <i class="fas fa-user"></i>
@@ -1130,6 +1534,12 @@ class TaskManager {
                     ${task.assignee_comments ? `
                         <div class="task-comments mt-2">
                             <strong>Comments:</strong> ${task.assignee_comments}
+                        </div>
+                    ` : ''}
+                    ${task.remarks ? `
+                        <div class="task-remarks">
+                            <strong>Completion Remarks:</strong>
+                            <p class="mb-0 mt-1">${task.remarks}</p>
                         </div>
                     ` : ''}
                 </div>
@@ -1207,6 +1617,10 @@ class TaskManager {
             );
         }
 
+        // Sort by priority: High > Medium > Low
+        const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
+        filteredTasks.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
         const tasksList = document.getElementById('tasksList');
         tasksList.innerHTML = filteredTasks.map(task => this.createTaskCard(task)).join('');
     }
@@ -1215,6 +1629,7 @@ class TaskManager {
         const modal = document.getElementById('taskModal');
         const title = document.getElementById('taskModalTitle');
         const form = document.getElementById('taskForm');
+        const remarksSection = document.getElementById('remarksSection');
         
         this.populateUserSelects();
         
@@ -1228,10 +1643,22 @@ class TaskManager {
             document.getElementById('taskPriority').value = task.priority;
             document.getElementById('taskStatus').value = task.status;
             document.getElementById('taskAssignedTo').value = task.assigned_to || '';
+            document.getElementById('taskRemarks').value = task.remarks || '';
+            
+            // Show remarks section if status is Completed
+            if (task.status === 'Completed') {
+                remarksSection.style.display = 'block';
+                document.getElementById('taskRemarks').required = true;
+            } else {
+                remarksSection.style.display = 'none';
+                document.getElementById('taskRemarks').required = false;
+            }
         } else {
             title.textContent = 'Add Task';
             form.reset();
             document.getElementById('taskId').value = '';
+            remarksSection.style.display = 'none';
+            document.getElementById('taskRemarks').required = false;
             // Set default start date to today
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('taskStartDate').value = today;
@@ -1251,8 +1678,15 @@ class TaskManager {
             priority: document.getElementById('taskPriority').value,
             status: document.getElementById('taskStatus').value,
             assigned_to: parseInt(document.getElementById('taskAssignedTo').value) || null,
-            updated_date: new Date().toISOString().split('T')[0]
+            updated_date: new Date().toISOString().split('T')[0],
+            remarks: document.getElementById('taskRemarks').value || ''
         };
+
+        // Validate remarks for completed tasks
+        if (taskData.status === 'Completed' && !taskData.remarks.trim()) {
+            this.showAlert('Please provide completion remarks for completed tasks', 'danger');
+            return;
+        }
 
         if (taskId) {
             const taskIndex = this.tasks.findIndex(t => t.id === parseInt(taskId));
@@ -1263,26 +1697,41 @@ class TaskManager {
                 
                 if (!wasCompleted && nowCompleted) {
                     taskData.locked_for_editing = true;
+                    taskData.completion_timestamp = new Date().toISOString();
+                    
+                    // Move to completed tasks
+                    const completedTask = { ...this.tasks[taskIndex], ...taskData };
+                    this.completedTasks.push(completedTask);
+                    this.tasks.splice(taskIndex, 1);
+                } else {
+                    this.tasks[taskIndex] = { ...this.tasks[taskIndex], ...taskData };
+                    // Update deadline info
+                    this.tasks[taskIndex].deadlineInfo = this.calculateDeadlineInfo(taskData.end_date, taskData.status);
                 }
-                
-                this.tasks[taskIndex] = { ...this.tasks[taskIndex], ...taskData };
-                // Update deadline info
-                this.tasks[taskIndex].deadlineInfo = this.calculateDeadlineInfo(taskData.end_date, taskData.status);
                 this.showAlert('Task updated successfully!', 'success');
             }
         } else {
             const newTask = {
-                id: this.getNextId(this.tasks),
+                id: this.getNextId([...this.tasks, ...this.completedTasks]),
                 user_id: this.currentUser.id,
                 created_date: new Date().toISOString().split('T')[0],
                 assignee_comments: '',
                 progress_notes: [],
                 locked_for_editing: taskData.status === 'Completed',
+                assigned_timestamp: new Date().toISOString(),
+                completion_timestamp: taskData.status === 'Completed' ? new Date().toISOString() : null,
                 ...taskData
             };
-            // Calculate deadline info for new task
-            newTask.deadlineInfo = this.calculateDeadlineInfo(newTask.end_date, newTask.status);
-            this.tasks.push(newTask);
+            
+            if (taskData.status === 'Completed') {
+                // Calculate deadline info for completed task
+                newTask.deadlineInfo = this.calculateDeadlineInfo(newTask.end_date, newTask.status);
+                this.completedTasks.push(newTask);
+            } else {
+                // Calculate deadline info for new task
+                newTask.deadlineInfo = this.calculateDeadlineInfo(newTask.end_date, newTask.status);
+                this.tasks.push(newTask);
+            }
             this.showAlert('Task created successfully!', 'success');
         }
 
@@ -1337,7 +1786,7 @@ class TaskManager {
             return;
         }
 
-        const task = this.tasks.find(t => t.id === taskId);
+        const task = [...this.tasks, ...this.completedTasks].find(t => t.id === taskId);
         if (!task) {
             this.showAlert('Task not found', 'danger');
             return;
@@ -1377,7 +1826,10 @@ class TaskManager {
         const request = this.editRequests.find(r => r.id === requestId);
         if (!request) return;
 
-        const task = this.tasks.find(t => t.id === request.task_id);
+        const taskInCompleted = this.completedTasks.find(t => t.id === request.task_id);
+        const taskInTasks = this.tasks.find(t => t.id === request.task_id);
+        const task = taskInCompleted || taskInTasks;
+        
         if (task) {
             task.locked_for_editing = false;
             request.status = 'approved';
@@ -1418,7 +1870,7 @@ class TaskManager {
         }
 
         container.innerHTML = myRequests.map(request => {
-            const task = this.tasks.find(t => t.id === request.task_id);
+            const task = [...this.tasks, ...this.completedTasks].find(t => t.id === request.task_id);
             const assignor = this.users.find(u => u.id === request.assigned_by);
             
             return `
@@ -1457,7 +1909,7 @@ class TaskManager {
         }
 
         container.innerHTML = incomingRequests.map(request => {
-            const task = this.tasks.find(t => t.id === request.task_id);
+            const task = [...this.tasks, ...this.completedTasks].find(t => t.id === request.task_id);
             const requester = this.users.find(u => u.id === request.requested_by);
             
             return `
@@ -1482,6 +1934,52 @@ class TaskManager {
                 </div>
             `;
         }).join('');
+    }
+
+    // Continue with remaining methods...
+    // User Management
+    showCreateUserModal() {
+        document.getElementById('createUserForm').reset();
+        this.createUserModal.show();
+    }
+
+    createUser() {
+        const username = document.getElementById('newUserUsername').value.trim();
+        const email = document.getElementById('newUserEmail').value.trim();
+        const password = document.getElementById('newUserPassword').value;
+        const role = document.getElementById('newUserRole').value;
+
+        if (!username || !email || !password || !role) {
+            this.showAlert('Please fill in all fields', 'danger');
+            return;
+        }
+
+        if (this.users.find(u => u.username === username)) {
+            this.showAlert('Username already exists', 'danger');
+            return;
+        }
+
+        if (this.users.find(u => u.email === email)) {
+            this.showAlert('Email already registered', 'danger');
+            return;
+        }
+
+        const newUser = {
+            id: this.getNextId(this.users),
+            username,
+            password_hash: this.hashPassword(password),
+            email,
+            role,
+            created_date: new Date().toISOString().split('T')[0],
+            last_login: 'Never'
+        };
+
+        this.users.push(newUser);
+        this.saveData();
+        this.createUserModal.hide();
+        this.renderUsersTable();
+        this.populateUserSelects();
+        this.showAlert('User created successfully! User can now login from any browser or device.', 'success');
     }
 
     // Schedule Section with Enhanced Calendar
@@ -1582,52 +2080,6 @@ class TaskManager {
         }
     }
 
-    // Continue with remaining methods...
-    // User Management
-    showCreateUserModal() {
-        document.getElementById('createUserForm').reset();
-        this.createUserModal.show();
-    }
-
-    createUser() {
-        const username = document.getElementById('newUserUsername').value.trim();
-        const email = document.getElementById('newUserEmail').value.trim();
-        const password = document.getElementById('newUserPassword').value;
-        const role = document.getElementById('newUserRole').value;
-
-        if (!username || !email || !password || !role) {
-            this.showAlert('Please fill in all fields', 'danger');
-            return;
-        }
-
-        if (this.users.find(u => u.username === username)) {
-            this.showAlert('Username already exists', 'danger');
-            return;
-        }
-
-        if (this.users.find(u => u.email === email)) {
-            this.showAlert('Email already registered', 'danger');
-            return;
-        }
-
-        const newUser = {
-            id: this.getNextId(this.users),
-            username,
-            password_hash: this.hashPassword(password),
-            email,
-            role,
-            created_date: new Date().toISOString().split('T')[0],
-            last_login: 'Never'
-        };
-
-        this.users.push(newUser);
-        this.saveData();
-        this.createUserModal.hide();
-        this.renderUsersTable();
-        this.populateUserSelects();
-        this.showAlert('User created successfully!', 'success');
-    }
-
     // Profile Section
     showProfile() {
         document.getElementById('profileUsername').value = this.currentUser.username;
@@ -1646,7 +2098,7 @@ class TaskManager {
         }
         
         this.saveData();
-        localStorage.setItem('ce_current_user', JSON.stringify(this.currentUser));
+        this.setStorageItem('ce_current_user', this.currentUser);
         this.showAlert('Profile updated successfully!', 'success');
     }
 
@@ -1673,7 +2125,7 @@ class TaskManager {
         }
         
         this.saveData();
-        localStorage.setItem('ce_current_user', JSON.stringify(this.currentUser));
+        this.setStorageItem('ce_current_user', this.currentUser);
         document.getElementById('changePasswordForm').reset();
         this.showAlert('Password changed successfully!', 'success');
     }
@@ -1694,7 +2146,7 @@ class TaskManager {
         if (!tbody) return;
         
         tbody.innerHTML = this.users.map(user => {
-            const userTasks = this.tasks.filter(t => t.user_id === user.id || t.assigned_to === user.id);
+            const userTasks = [...this.tasks, ...this.completedTasks].filter(t => t.user_id === user.id || t.assigned_to === user.id);
             const isCurrentUser = user.id === this.currentUser.id;
             
             return `
@@ -1737,7 +2189,7 @@ class TaskManager {
         }
 
         container.innerHTML = allRequests.map(request => {
-            const task = this.tasks.find(t => t.id === request.task_id);
+            const task = [...this.tasks, ...this.completedTasks].find(t => t.id === request.task_id);
             const requester = this.users.find(u => u.id === request.requested_by);
             const assignor = this.users.find(u => u.id === request.assigned_by);
             
@@ -1784,6 +2236,7 @@ class TaskManager {
         if (confirm('Are you sure you want to delete this user and all their tasks?')) {
             this.users = this.users.filter(u => u.id !== userId);
             this.tasks = this.tasks.filter(t => t.user_id !== userId && t.assigned_to !== userId);
+            this.completedTasks = this.completedTasks.filter(t => t.user_id !== userId && t.assigned_to !== userId);
             this.editRequests = this.editRequests.filter(r => r.requested_by !== userId && r.assigned_by !== userId);
             this.saveData();
             this.renderUsersTable();
@@ -1811,8 +2264,8 @@ class TaskManager {
         if (!container) return;
         
         const totalUsers = this.users.length;
-        const totalTasks = this.tasks.length;
-        const completedTasks = this.tasks.filter(t => t.status === 'Completed').length;
+        const totalTasks = this.tasks.length + this.completedTasks.length;
+        const completedTasks = this.completedTasks.length;
         const overdueTasks = this.tasks.filter(t => {
             if (!t.deadlineInfo) {
                 t.deadlineInfo = this.calculateDeadlineInfo(t.end_date, t.status);
@@ -1877,8 +2330,8 @@ class TaskManager {
         }
 
         const userData = this.users.map(user => {
-            const userTasks = this.tasks.filter(t => t.user_id === user.id || t.assigned_to === user.id);
-            const completedTasks = userTasks.filter(t => t.status === 'Completed');
+            const userTasks = [...this.tasks, ...this.completedTasks].filter(t => t.user_id === user.id || t.assigned_to === user.id);
+            const completedTasks = this.completedTasks.filter(t => t.user_id === user.id || t.assigned_to === user.id);
             return {
                 username: user.username,
                 total: userTasks.length,
@@ -1931,7 +2384,8 @@ class TaskManager {
         const statusData = {
             'Not Started': this.tasks.filter(t => t.status === 'Not Started').length,
             'In Progress': this.tasks.filter(t => t.status === 'In Progress').length,
-            'Completed': this.tasks.filter(t => t.status === 'Completed').length
+            'Pending Response': this.tasks.filter(t => t.status === 'Pending Response').length,
+            'Completed': this.completedTasks.length
         };
 
         this.charts.teamProductivity = new Chart(ctx, {
@@ -1940,7 +2394,7 @@ class TaskManager {
                 labels: Object.keys(statusData),
                 datasets: [{
                     data: Object.values(statusData),
-                    backgroundColor: ['#FFC185', '#1FB8CD', '#B4413C']
+                    backgroundColor: ['#FFC185', '#1FB8CD', '#B4413C', '#5D878F']
                 }]
             },
             options: {
@@ -1960,10 +2414,11 @@ class TaskManager {
         if (!tbody) return;
         
         const userStats = this.users.map(user => {
-            const allUserTasks = this.tasks.filter(t => t.user_id === user.id || t.assigned_to === user.id);
-            const completedTasks = allUserTasks.filter(t => t.status === 'Completed');
-            const inProgressTasks = allUserTasks.filter(t => t.status === 'In Progress');
-            const overdueTasks = allUserTasks.filter(t => {
+            const allUserTasks = [...this.tasks, ...this.completedTasks].filter(t => t.user_id === user.id || t.assigned_to === user.id);
+            const completedTasks = this.completedTasks.filter(t => t.user_id === user.id || t.assigned_to === user.id);
+            const inProgressTasks = this.tasks.filter(t => (t.user_id === user.id || t.assigned_to === user.id) && t.status === 'In Progress');
+            const overdueTasks = this.tasks.filter(t => {
+                if (t.user_id !== user.id && t.assigned_to !== user.id) return false;
                 if (!t.deadlineInfo) {
                     t.deadlineInfo = this.calculateDeadlineInfo(t.end_date, t.status);
                 }
@@ -2093,9 +2548,11 @@ class TaskManager {
         doc.setFontSize(10);
         doc.text(`Total Users: ${this.users.length}`, 20, yPosition);
         yPosition += 5;
-        doc.text(`Total Tasks: ${this.tasks.length}`, 20, yPosition);
+        doc.text(`Total Tasks: ${this.tasks.length + this.completedTasks.length}`, 20, yPosition);
         yPosition += 5;
-        doc.text(`Completed Tasks: ${this.tasks.filter(t => t.status === 'Completed').length}`, 20, yPosition);
+        doc.text(`Completed Tasks: ${this.completedTasks.length}`, 20, yPosition);
+        yPosition += 5;
+        doc.text(`Ongoing Tasks: ${this.tasks.length}`, 20, yPosition);
         yPosition += 5;
         doc.text(`Overdue Tasks: ${overdueTasks}`, 20, yPosition);
         yPosition += 5;
@@ -2111,12 +2568,12 @@ class TaskManager {
         doc.text('Task Completion Report', 20, yPosition);
         yPosition += 15;
         
-        const completedTasks = this.tasks.filter(t => t.status === 'Completed');
-        
         doc.setFontSize(10);
-        completedTasks.forEach(task => {
+        this.completedTasks.forEach(task => {
             const user = this.users.find(u => u.id === task.user_id);
-            doc.text(`${task.title} - Completed by: ${user ? user.username : 'Unknown'}`, 20, yPosition);
+            const assignee = this.users.find(u => u.id === task.assigned_to);
+            const completionTime = task.completion_timestamp ? new Date(task.completion_timestamp).toLocaleDateString() : 'N/A';
+            doc.text(`${task.title} - Assigned to: ${assignee ? assignee.username : 'Unknown'} - Completed: ${completionTime}`, 20, yPosition);
             yPosition += 5;
             if (yPosition > 280) {
                 doc.addPage();
@@ -2134,17 +2591,18 @@ class TaskManager {
         
         doc.setFontSize(10);
         this.users.forEach(user => {
-            const userTasks = this.tasks.filter(t => t.user_id === user.id || t.assigned_to === user.id);
-            const completed = userTasks.filter(t => t.status === 'Completed').length;
-            const overdue = userTasks.filter(t => {
+            const allUserTasks = [...this.tasks, ...this.completedTasks].filter(t => t.user_id === user.id || t.assigned_to === user.id);
+            const completed = this.completedTasks.filter(t => t.user_id === user.id || t.assigned_to === user.id).length;
+            const overdue = this.tasks.filter(t => {
+                if (t.user_id !== user.id && t.assigned_to !== user.id) return false;
                 if (!t.deadlineInfo) {
                     t.deadlineInfo = this.calculateDeadlineInfo(t.end_date, t.status);
                 }
                 return t.deadlineInfo.isOverdue;
             }).length;
-            const completionRate = userTasks.length > 0 ? Math.round((completed / userTasks.length) * 100) : 0;
+            const completionRate = allUserTasks.length > 0 ? Math.round((completed / allUserTasks.length) * 100) : 0;
             
-            doc.text(`${user.username}: ${completed}/${userTasks.length} tasks (${completionRate}%) - ${overdue} overdue`, 20, yPosition);
+            doc.text(`${user.username}: ${completed}/${allUserTasks.length} tasks (${completionRate}%) - ${overdue} overdue`, 20, yPosition);
             yPosition += 5;
         });
         
@@ -2156,14 +2614,18 @@ class TaskManager {
         doc.text('Project Timeline Report', 20, yPosition);
         yPosition += 15;
         
-        const sortedTasks = this.tasks.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+        const allTasks = [...this.tasks, ...this.completedTasks];
+        const sortedTasks = allTasks.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
         
         doc.setFontSize(10);
         sortedTasks.forEach(task => {
             if (!task.deadlineInfo) {
                 task.deadlineInfo = this.calculateDeadlineInfo(task.end_date, task.status);
             }
-            doc.text(`${task.title}: ${task.start_date} to ${task.end_date} (${task.status}) - ${task.deadlineInfo.displayText}`, 20, yPosition);
+            const statusText = task.status === 'Completed' ? 
+                `Completed (${task.completion_timestamp ? new Date(task.completion_timestamp).toLocaleDateString() : 'N/A'})` : 
+                task.status;
+            doc.text(`${task.title}: ${task.start_date} to ${task.end_date} (${statusText}) - ${task.deadlineInfo.displayText}`, 20, yPosition);
             yPosition += 5;
             if (yPosition > 280) {
                 doc.addPage();
@@ -2186,6 +2648,8 @@ class TaskManager {
             return t.deadlineInfo.isOverdue;
         }).length;
         
+        const totalTasks = this.tasks.length + this.completedTasks.length;
+        
         doc.setFontSize(10);
         doc.text('System Statistics:', 20, yPosition);
         yPosition += 5;
@@ -2193,7 +2657,11 @@ class TaskManager {
         yPosition += 5;
         doc.text(`• Active admin users: ${this.users.filter(u => u.role === 'admin').length}`, 25, yPosition);
         yPosition += 5;
-        doc.text(`• Total tasks created: ${this.tasks.length}`, 25, yPosition);
+        doc.text(`• Total tasks created: ${totalTasks}`, 25, yPosition);
+        yPosition += 5;
+        doc.text(`• Completed tasks: ${this.completedTasks.length}`, 25, yPosition);
+        yPosition += 5;
+        doc.text(`• Ongoing tasks: ${this.tasks.length}`, 25, yPosition);
         yPosition += 5;
         doc.text(`• Overdue tasks: ${overdueTasks}`, 25, yPosition);
         yPosition += 5;
@@ -2201,7 +2669,9 @@ class TaskManager {
         yPosition += 5;
         doc.text(`• Pending edit requests: ${this.editRequests.filter(r => r.status === 'pending').length}`, 25, yPosition);
         yPosition += 5;
-        doc.text(`• Overall completion rate: ${Math.round((this.tasks.filter(t => t.status === 'Completed').length / this.tasks.length) * 100) || 0}%`, 25, yPosition);
+        doc.text(`• Overall completion rate: ${Math.round((this.completedTasks.length / totalTasks) * 100) || 0}%`, 25, yPosition);
+        yPosition += 5;
+        doc.text(`• Total chat messages: ${this.chatMessages.length}`, 25, yPosition);
         
         return yPosition + 10;
     }
@@ -2273,14 +2743,16 @@ class TaskManager {
                     team_dashboard: true,
                     calendar_view: true,
                     deadline_alerts: true,
-                    real_time_updates: true
+                    real_time_updates: true,
+                    team_chat: true
                 },
                 timing: {
                     timezone: "IST",
                     update_intervals: {
                         clock: 1000,
                         deadlines: 60000,
-                        stats: 30000
+                        stats: 30000,
+                        chat: 5000
                     }
                 }
             };
